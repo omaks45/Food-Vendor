@@ -1,0 +1,362 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mongodb"
+}
+
+
+// User Schema
+model User {
+  id                String      @id @default(auto()) @map("_id") @db.ObjectId
+  email             String      @unique
+  phoneNumber       String?     @unique
+  password          String?     // null for OAuth users
+  firstName         String
+  lastName          String
+  role              UserRole    @default(CUSTOMER)
+  isEmailVerified   Boolean     @default(false)
+  isPhoneVerified   Boolean     @default(false)
+  authProvider      AuthProvider @default(TRADITIONAL)
+  googleId          String?     @unique
+  facebookId        String?     @unique
+  profileImage      String?
+  
+  // Referral system
+  referralCode      String      @unique
+  referredBy        String?     @db.ObjectId
+  referrer          User?       @relation("Referrals", fields: [referredBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  referrals         User[]      @relation("Referrals")
+  
+  // Timestamps
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  lastLogin         DateTime?
+  
+  // Relations
+  addresses         Address[]
+  orders            Order[]
+  cart              Cart?
+  otpCodes          OTPCode[]
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+enum AuthProvider {
+  TRADITIONAL
+  GOOGLE
+  FACEBOOK
+}
+
+// OTP Schema
+model OTPCode {
+  id           String      @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String      @db.ObjectId
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code         String
+  purpose      OTPPurpose
+  expiresAt    DateTime
+  isUsed       Boolean     @default(false)
+  createdAt    DateTime    @default(now())
+  
+  @@index([userId, purpose, expiresAt])
+}
+
+enum OTPPurpose {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  PHONE_VERIFICATION
+}
+
+// Address Schema
+model Address {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String    @db.ObjectId
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  number          String
+  street          String
+  city            String
+  state           String
+  
+  isDefault       Boolean   @default(false)
+  label           String?   // e.g., "Home", "Office"
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  orders          Order[]
+  
+  @@index([userId])
+}
+
+// Food Category Schema
+model FoodCategory {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  name        String      @unique
+  slug        String      @unique
+  description String?
+  imageUrl    String?
+  isActive    Boolean     @default(true)
+  displayOrder Int        @default(0)
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  foodItems   FoodItem[]
+  
+  @@index([isActive])
+}
+
+// Food Item Schema
+model FoodItem {
+  id              String          @id @default(auto()) @map("_id") @db.ObjectId
+  categoryId      String          @db.ObjectId
+  category        FoodCategory    @relation(fields: [categoryId], references: [id])
+  
+  name            String
+  slug            String          @unique
+  description     String
+  imageUrl        String
+  imagePublicId   String?         // Cloudinary public ID
+  
+  basePrice       Float
+  
+  // Category-specific: Jollof Rice & Entrees
+  allowProteinChoice    Boolean   @default(false)
+  allowExtraSides       Boolean   @default(false)
+  
+  isAvailable     Boolean         @default(true)
+  isFeatured      Boolean         @default(false)
+  
+  // Customer message space
+  allowCustomerMessage  Boolean   @default(true)
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  // Relations
+  cartItems       CartItem[]
+  orderItems      OrderItem[]
+  
+  @@index([categoryId])
+  @@index([isAvailable])
+}
+
+// Protein Options Enum
+enum ProteinType {
+  FRIED_CHICKEN   // Default
+  GRILLED_FISH
+  BEEF
+}
+
+// Extra Sides Enum
+enum ExtraSideType {
+  FRIED_PLANTAIN
+  COLESLAW
+  EXTRA_PEPPER_SAUCE
+}
+
+// Cart Schema
+model Cart {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String      @unique @db.ObjectId
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  items       CartItem[]
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+// Cart Item Schema
+model CartItem {
+  id          String          @id @default(auto()) @map("_id") @db.ObjectId
+  cartId      String          @db.ObjectId
+  cart        Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  
+  foodItemId  String          @db.ObjectId
+  foodItem    FoodItem        @relation(fields: [foodItemId], references: [id])
+  
+  quantity    Int             @default(1)
+  
+  // Customizations for Jollof Rice & Entrees
+  selectedProtein     ProteinType?
+  selectedExtraSides  ExtraSideType[]
+  
+  customerMessage     String?
+  
+  // Price snapshot at time of adding to cart
+  unitPrice   Float
+  
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  
+  @@index([cartId])
+  @@index([foodItemId])
+}
+
+// Order Schema
+model Order {
+  id                String        @id @default(auto()) @map("_id") @db.ObjectId
+  orderNumber       String        @unique
+  
+  userId            String        @db.ObjectId
+  user              User          @relation(fields: [userId], references: [id])
+  
+  // Order Items
+  items             OrderItem[]
+  
+  // Pricing
+  subtotal          Float
+  deliveryFee       Float
+  serviceFee        Float
+  tax               Float
+  discount          Float         @default(0)
+  total             Float
+  
+  // Delivery Information
+  addressId         String        @db.ObjectId
+  address           Address       @relation(fields: [addressId], references: [id])
+  deliveryTime      DateTime?
+  deliveryInstructions String?
+  contactNumber     String
+  
+  // Status
+  status            OrderStatus   @default(PENDING)
+  
+  // Payment
+  paymentMethod     PaymentMethod
+  paymentStatus     PaymentStatus @default(PENDING)
+  
+  // Referral/Promo
+  promoCode         String?
+  referralCodeUsed  String?
+  
+  // Customer Instructions
+  customerInstructions String?
+  
+  // Timestamps
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  confirmedAt       DateTime?
+  completedAt       DateTime?
+  cancelledAt       DateTime?
+  
+  // Cancellation
+  cancellationReason String?
+  cancelledBy       String?       // userId or "admin"
+  
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  OUT_FOR_DELIVERY
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH_ON_DELIVERY
+  CARD
+  BANK_TRANSFER
+  WALLET
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+// Order Item Schema
+model OrderItem {
+  id          String          @id @default(auto()) @map("_id") @db.ObjectId
+  orderId     String          @db.ObjectId
+  order       Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  foodItemId  String          @db.ObjectId
+  foodItem    FoodItem        @relation(fields: [foodItemId], references: [id])
+  
+  quantity    Int
+  
+  // Snapshot of food item at time of order
+  foodName    String
+  foodImage   String
+  
+  // Customizations
+  selectedProtein     ProteinType?
+  selectedExtraSides  ExtraSideType[]
+  
+  customerMessage     String?
+  
+  // Price snapshot
+  unitPrice   Float
+  totalPrice  Float
+  
+  createdAt   DateTime        @default(now())
+  
+  @@index([orderId])
+  @@index([foodItemId])
+}
+
+// Referral Code Schema
+model ReferralCode {
+  id              String      @id @default(auto()) @map("_id") @db.ObjectId
+  code            String      @unique
+  userId          String?     @db.ObjectId // null if it's a promotional code
+  
+  discountType    DiscountType
+  discountValue   Float       // percentage or fixed amount
+  
+  maxUses         Int?        // null for unlimited
+  currentUses     Int         @default(0)
+  
+  isActive        Boolean     @default(true)
+  expiresAt       DateTime?
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  @@index([isActive])
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+// Admin Activity Log
+model AdminActivityLog {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  adminId     String      @db.ObjectId
+  action      String      // e.g., "FOOD_ITEM_CREATED", "ORDER_STATUS_UPDATED"
+  entityType  String      // e.g., "FoodItem", "Order"
+  entityId    String?     @db.ObjectId
+  details     Json?       // Additional context
+  ipAddress   String?
+  
+  createdAt   DateTime    @default(now())
+  
+  @@index([adminId])
+  @@index([createdAt])
+  @@index([entityType])
+}
+
