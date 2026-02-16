@@ -8,6 +8,14 @@ import {
 import { Response } from 'express';
 import { PrismaClientKnownRequestError, PrismaClientValidationError } from '@prisma/client/runtime/library';
 
+/**
+ * PrismaExceptionFilter is a global exception filter that catches specific Prisma exceptions
+ * and transforms them into standardized HTTP responses. It handles common database errors
+ * such as unique constraint violations, record not found, and foreign key constraint failures. 
+ * The filter extracts relevant information from the Prisma exceptions and formats it into a consistent response structure, including an error code, message, and metadata. This allows the application to provide clear and actionable error messages to clients while maintaining a clean separation of concerns between database logic and error handling.
+ * To use this filter, simply add it to the providers array in your main application module or any specific module where you want to handle Prisma exceptions globally.
+ */
+
 @Catch(PrismaClientValidationError, PrismaClientKnownRequestError)
 export class PrismaExceptionFilter implements ExceptionFilter {
     catch(exception: any, host: ArgumentsHost) {
