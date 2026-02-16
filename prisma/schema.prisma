@@ -5,13 +5,15 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "mongodb"
+  url      = env("DATABASE_URL")
 }
+
 
 
 // User Schema
@@ -19,7 +21,7 @@ model User {
   id                String      @id @default(auto()) @map("_id") @db.ObjectId
   email             String      @unique
   phoneNumber       String?     @unique
-  password          String?     // null for OAuth users
+  password          String?
   firstName         String
   lastName          String
   role              UserRole    @default(CUSTOMER)
@@ -30,22 +32,21 @@ model User {
   facebookId        String?     @unique
   profileImage      String?
   
-  // Referral system
   referralCode      String      @unique
   referredBy        String?     @db.ObjectId
   referrer          User?       @relation("Referrals", fields: [referredBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
   referrals         User[]      @relation("Referrals")
   
-  // Timestamps
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
   lastLogin         DateTime?
   
-  // Relations
   addresses         Address[]
   orders            Order[]
   cart              Cart?
   otpCodes          OTPCode[]
+  
+  @@map("users")
 }
 
 enum UserRole {
@@ -59,7 +60,6 @@ enum AuthProvider {
   FACEBOOK
 }
 
-// OTP Schema
 model OTPCode {
   id           String      @id @default(auto()) @map("_id") @db.ObjectId
   userId       String      @db.ObjectId
@@ -71,6 +71,7 @@ model OTPCode {
   createdAt    DateTime    @default(now())
   
   @@index([userId, purpose, expiresAt])
+  @@map("otp_codes")
 }
 
 enum OTPPurpose {
@@ -79,7 +80,6 @@ enum OTPPurpose {
   PHONE_VERIFICATION
 }
 
-// Address Schema
 model Address {
   id              String    @id @default(auto()) @map("_id") @db.ObjectId
   userId          String    @db.ObjectId
@@ -91,7 +91,7 @@ model Address {
   state           String
   
   isDefault       Boolean   @default(false)
-  label           String?   // e.g., "Home", "Office"
+  label           String?
   
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -99,9 +99,9 @@ model Address {
   orders          Order[]
   
   @@index([userId])
+  @@map("addresses")
 }
 
-// Food Category Schema
 model FoodCategory {
   id          String      @id @default(auto()) @map("_id") @db.ObjectId
   name        String      @unique
@@ -117,58 +117,53 @@ model FoodCategory {
   foodItems   FoodItem[]
   
   @@index([isActive])
+  @@map("food_categories")
 }
 
-// Food Item Schema
 model FoodItem {
   id              String          @id @default(auto()) @map("_id") @db.ObjectId
   categoryId      String          @db.ObjectId
   category        FoodCategory    @relation(fields: [categoryId], references: [id])
   
   name            String
-  slug            String          @unique
+  slug            String
   description     String
   imageUrl        String
-  imagePublicId   String?         // Cloudinary public ID
+  imagePublicId   String?
   
   basePrice       Float
   
-  // Category-specific: Jollof Rice & Entrees
   allowProteinChoice    Boolean   @default(false)
   allowExtraSides       Boolean   @default(false)
-  
   isAvailable     Boolean         @default(true)
   isFeatured      Boolean         @default(false)
-  
-  // Customer message space
   allowCustomerMessage  Boolean   @default(true)
   
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   
-  // Relations
   cartItems       CartItem[]
   orderItems      OrderItem[]
   
+  @@unique([slug])
   @@index([categoryId])
   @@index([isAvailable])
+  @@index([categoryId, isAvailable])
+  @@map("food_items")
 }
 
-// Protein Options Enum
 enum ProteinType {
-  FRIED_CHICKEN   // Default
+  FRIED_CHICKEN
   GRILLED_FISH
   BEEF
 }
 
-// Extra Sides Enum
 enum ExtraSideType {
   FRIED_PLANTAIN
   COLESLAW
   EXTRA_PEPPER_SAUCE
 }
 
-// Cart Schema
 model Cart {
   id          String      @id @default(auto()) @map("_id") @db.ObjectId
   userId      String      @unique @db.ObjectId
@@ -178,9 +173,10 @@ model Cart {
   
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+  
+  @@map("carts")
 }
 
-// Cart Item Schema
 model CartItem {
   id          String          @id @default(auto()) @map("_id") @db.ObjectId
   cartId      String          @db.ObjectId
@@ -190,14 +186,9 @@ model CartItem {
   foodItem    FoodItem        @relation(fields: [foodItemId], references: [id])
   
   quantity    Int             @default(1)
-  
-  // Customizations for Jollof Rice & Entrees
   selectedProtein     ProteinType?
   selectedExtraSides  ExtraSideType[]
-  
   customerMessage     String?
-  
-  // Price snapshot at time of adding to cart
   unitPrice   Float
   
   createdAt   DateTime        @default(now())
@@ -205,20 +196,18 @@ model CartItem {
   
   @@index([cartId])
   @@index([foodItemId])
+  @@map("cart_items")
 }
 
-// Order Schema
 model Order {
   id                String        @id @default(auto()) @map("_id") @db.ObjectId
-  orderNumber       String        @unique
+  orderNumber       String
   
   userId            String        @db.ObjectId
   user              User          @relation(fields: [userId], references: [id])
   
-  // Order Items
   items             OrderItem[]
   
-  // Pricing
   subtotal          Float
   deliveryFee       Float
   serviceFee        Float
@@ -226,41 +215,37 @@ model Order {
   discount          Float         @default(0)
   total             Float
   
-  // Delivery Information
   addressId         String        @db.ObjectId
   address           Address       @relation(fields: [addressId], references: [id])
   deliveryTime      DateTime?
   deliveryInstructions String?
   contactNumber     String
   
-  // Status
   status            OrderStatus   @default(PENDING)
   
-  // Payment
   paymentMethod     PaymentMethod
   paymentStatus     PaymentStatus @default(PENDING)
   
-  // Referral/Promo
   promoCode         String?
   referralCodeUsed  String?
-  
-  // Customer Instructions
   customerInstructions String?
   
-  // Timestamps
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   confirmedAt       DateTime?
   completedAt       DateTime?
   cancelledAt       DateTime?
   
-  // Cancellation
   cancellationReason String?
-  cancelledBy       String?       // userId or "admin"
+  cancelledBy       String?
   
+  @@unique([orderNumber])
   @@index([userId])
   @@index([status])
   @@index([createdAt])
+  @@index([userId, status])
+  @@index([status, createdAt])
+  @@map("orders")
 }
 
 enum OrderStatus {
@@ -286,7 +271,6 @@ enum PaymentStatus {
   REFUNDED
 }
 
-// Order Item Schema
 model OrderItem {
   id          String          @id @default(auto()) @map("_id") @db.ObjectId
   orderId     String          @db.ObjectId
@@ -296,18 +280,13 @@ model OrderItem {
   foodItem    FoodItem        @relation(fields: [foodItemId], references: [id])
   
   quantity    Int
-  
-  // Snapshot of food item at time of order
   foodName    String
   foodImage   String
   
-  // Customizations
   selectedProtein     ProteinType?
   selectedExtraSides  ExtraSideType[]
-  
   customerMessage     String?
   
-  // Price snapshot
   unitPrice   Float
   totalPrice  Float
   
@@ -315,18 +294,18 @@ model OrderItem {
   
   @@index([orderId])
   @@index([foodItemId])
+  @@map("order_items")
 }
 
-// Referral Code Schema
 model ReferralCode {
   id              String      @id @default(auto()) @map("_id") @db.ObjectId
   code            String      @unique
-  userId          String?     @db.ObjectId // null if it's a promotional code
+  userId          String?     @db.ObjectId
   
   discountType    DiscountType
-  discountValue   Float       // percentage or fixed amount
+  discountValue   Float
   
-  maxUses         Int?        // null for unlimited
+  maxUses         Int?
   currentUses     Int         @default(0)
   
   isActive        Boolean     @default(true)
@@ -336,6 +315,7 @@ model ReferralCode {
   updatedAt       DateTime    @updatedAt
   
   @@index([isActive])
+  @@map("referral_codes")
 }
 
 enum DiscountType {
@@ -343,14 +323,13 @@ enum DiscountType {
   FIXED_AMOUNT
 }
 
-// Admin Activity Log
 model AdminActivityLog {
   id          String      @id @default(auto()) @map("_id") @db.ObjectId
   adminId     String      @db.ObjectId
-  action      String      // e.g., "FOOD_ITEM_CREATED", "ORDER_STATUS_UPDATED"
-  entityType  String      // e.g., "FoodItem", "Order"
+  action      String
+  entityType  String
   entityId    String?     @db.ObjectId
-  details     Json?       // Additional context
+  details     Json?
   ipAddress   String?
   
   createdAt   DateTime    @default(now())
@@ -358,5 +337,5 @@ model AdminActivityLog {
   @@index([adminId])
   @@index([createdAt])
   @@index([entityType])
+  @@map("admin_activity_logs")
 }
-
