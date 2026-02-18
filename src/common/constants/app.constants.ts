@@ -42,11 +42,11 @@ export const AppConstants = {
     
     // Rate Limiting
     RATE_LIMIT: {
-        PUBLIC: { TTL: 60000, LIMIT: 30 },
-        AUTH: { TTL: 60000, LIMIT: 10 },
-        AUTHENTICATED: { TTL: 60000, LIMIT: 100 },
-        ADMIN: { TTL: 60000, LIMIT: 200 },
-        SENSITIVE: { TTL: 300000, LIMIT: 5 },
+        PUBLIC:        { ttl: 60000, limit: 30 },
+        AUTH:          { ttl: 60000, limit: 10 },
+        AUTHENTICATED: { ttl: 60000, limit: 100 },
+        ADMIN:         { ttl: 60000, limit: 200 },
+        SENSITIVE:     { ttl: 300000, limit: 5 },
     },
     
     // Pricing
