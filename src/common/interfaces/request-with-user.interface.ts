@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
 import { Request } from 'express';
-import { UserRole } from '../enums';
+import { UserRole } from '@/common/enums';
 
 export interface RequestWithUser extends Request {
     user: {

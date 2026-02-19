@@ -20,7 +20,7 @@ import { AppConstants, ErrorCodes } from '@/common/constants';
 import { generateReferralCode, hashToken } from '@/common/utils/helpers';
 import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
 import { OTPPurpose } from '../notifications/services/otp.service';
-import { UserRole } from '@/common/enums/user-role.enum';
+import { UserRole } from '@/common/enums';
 //import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
 
 @Injectable()

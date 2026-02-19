@@ -1,3 +1,5 @@
 /* eslint-disable prettier/prettier */
-export * from './user-role.enum';
+// Re-export Prisma enums for convenience
+export { UserRole, OrderStatus, PaymentStatus, PaymentMethod } from '@prisma/client';
+
 export * from './order-status.enum';

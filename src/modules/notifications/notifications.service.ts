@@ -1,7 +1,7 @@
 /* eslint-disable prettier/prettier */
 import { Injectable } from '@nestjs/common';
-import { EmailService } from '../services/email.service';
-import { OtpService, OTPPurpose } from '../services/otp.service';
+import { EmailService } from './services/email.service';
+import { OtpService, OTPPurpose } from './services/otp.service';
 
 @Injectable()
 export class NotificationsService {

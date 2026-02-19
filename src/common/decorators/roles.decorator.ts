@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
 import { SetMetadata } from '@nestjs/common';
-import { UserRole } from '../enums';
+import { UserRole } from '@/common/enums';
 
 export const ROLES_KEY = 'roles';
 export const Roles = (...roles: UserRole[]) => SetMetadata(ROLES_KEY, roles);
