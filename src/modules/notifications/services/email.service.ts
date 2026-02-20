@@ -1,4 +1,5 @@
 /* eslint-disable prettier/prettier */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
@@ -8,28 +9,44 @@ import { Transporter } from 'nodemailer';
 export class EmailService {
     private readonly logger = new Logger(EmailService.name);
     private transporter: Transporter;
-
     constructor(private configService: ConfigService) {
+        const emailPassword = this.configService.get<string>('EMAIL_PASSWORD');
+        
         this.transporter = nodemailer.createTransport({
-        host: this.configService.get('EMAIL_HOST'),
-        port: this.configService.get('EMAIL_PORT'),
-        secure: this.configService.get('EMAIL_SECURE'),
+        host: this.configService.get<string>('EMAIL_HOST'),
+        port: parseInt(this.configService.get<string>('EMAIL_PORT'), 10),
+        secure: this.configService.get<string>('EMAIL_SECURE') === 'true',
         auth: {
-            user: this.configService.get('EMAIL_USER'),
-            pass: this.configService.get('EMAIL_PASSWORD'),
+            user: this.configService.get<string>('EMAIL_USER'),
+            pass: emailPassword,
         },
+        pool: true,
+        maxConnections: 1,
+        rateDelta: 20000,
+        rateLimit: 5,
+        tls: {
+            rejectUnauthorized: false,
+        },
+        family: 4,
+        });
+
+        this.transporter.verify((error) => {
+        if (error) {
+            this.logger.error('Email verification failed:', error.message);
+            this.logger.error('Check: EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASSWORD');
+        } else {
+            this.logger.log('Email service ready');
+        }
         });
     }
 
-    async sendEmail(
-        to: string,
-        subject: string,
-        html: string,
-    ): Promise<boolean> {
+    async sendEmail(to: string, subject: string, html: string): Promise<boolean> {
         try {
-        const from = `${this.configService.get('EMAIL_FROM_NAME')} <${this.configService.get('EMAIL_FROM')}>`;
+        const fromName = this.configService.get<string>('EMAIL_FROM_NAME') || 'Chuks Kitchen';
+        const fromEmail = this.configService.get<string>('EMAIL_FROM');
+        const from = `${fromName} <${fromEmail}>`;
 
-        await this.transporter.sendMail({
+        const info = await this.transporter.sendMail({
             from,
             to,
             subject,
@@ -39,7 +56,7 @@ export class EmailService {
         this.logger.log(`Email sent to ${to}: ${subject}`);
         return true;
         } catch (error) {
-        this.logger.error(`Failed to send email to ${to}`, error);
+        this.logger.error(`Failed to send email to ${to}:`, error.message);
         return false;
         }
     }
