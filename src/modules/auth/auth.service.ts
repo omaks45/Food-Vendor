@@ -37,7 +37,8 @@ export class AuthService {
    * Register a new user
    */
   async register(registerDto: RegisterDto) {
-    const { email, phoneNumber, password, firstName, lastName, referralCode } =
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { email, phoneNumber, password, firstName, lastName, confirmPassword, referralCode } =
       registerDto;
 
     // Check if user already exists
@@ -123,8 +124,8 @@ export class AuthService {
     const user = await this.prisma.user.create({
       data: {
         email,
-        phoneNumber,
-        password: hashedPassword,
+        phoneNumber: phoneNumber || null,
+        password: hashedPassword, // Only save the hashed password
         firstName,
         lastName,
         referralCode: newUserReferralCode,
