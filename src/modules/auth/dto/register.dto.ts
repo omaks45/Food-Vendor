@@ -1,4 +1,5 @@
 /* eslint-disable prettier/prettier */
+import { Match } from '@/common/decorators/match.decorator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
     IsEmail,
@@ -43,6 +44,11 @@ export class RegisterDto {
         'Password must contain uppercase, lowercase, number, and special character',
     })
     password: string;
+
+    @ApiProperty({ example: 'Password123!' })
+    @IsString()
+    @Match('password', { message: 'Passwords do not match' })
+    confirmPassword: string;
 
     @ApiPropertyOptional({ example: 'REF123ABC' })
     @IsOptional()
