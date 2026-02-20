@@ -70,32 +70,43 @@ export class AuthService {
       }
     }
 
-    // Validate referral code if provided
-    let referralCodeData = null;
+    // NEW CODE (checks both user referrals AND promo codes)
+    let referrerId: string | null = null;
+
     if (referralCode) {
-      referralCodeData = await this.prisma.referralCode.findFirst({
-        where: {
-          code: referralCode,
-          isActive: true,
-          OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }],
-        },
+      // First, check if it's a user's referral code
+      const referringUser = await this.prisma.user.findFirst({
+        where: { referralCode },
       });
 
-      if (!referralCodeData) {
-        throw new BadRequestException({
-          code: ErrorCodes.INVALID_REFERRAL_CODE,
-          message: 'Invalid or expired referral code',
+      if (referringUser) {
+        referrerId = referringUser.id;
+      } else {
+        // If not a user code, check if it's a promotional code
+        const promoCode = await this.prisma.referralCode.findFirst({
+          where: {
+            code: referralCode,
+            isActive: true,
+            OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }],
+          },
         });
-      }
 
-      if (
-        referralCodeData.maxUses &&
-        referralCodeData.currentUses >= referralCodeData.maxUses
-      ) {
-        throw new BadRequestException({
-          code: ErrorCodes.REFERRAL_CODE_MAX_USES,
-          message: 'Referral code has reached maximum uses',
-        });
+        if (!promoCode) {
+          throw new BadRequestException({
+            code: ErrorCodes.INVALID_REFERRAL_CODE,
+            message: 'Invalid or expired referral code',
+          });
+        }
+
+        // Check usage limits for promo codes
+        if (promoCode.maxUses && promoCode.currentUses >= promoCode.maxUses) {
+          throw new BadRequestException({
+            code: ErrorCodes.REFERRAL_CODE_MAX_USES,
+            message: 'Referral code has reached maximum uses',
+          });
+        }
+
+        referrerId = promoCode.userId; // May be null for system promo codes
       }
     }
 
@@ -117,10 +128,9 @@ export class AuthService {
         firstName,
         lastName,
         referralCode: newUserReferralCode,
-        referredBy: referralCodeData?.userId || null,
+        referredBy: referrerId,
       },
     });
-
     // Generate and send OTP
     await this.notificationsService.generateAndSendOTP(
       user.id,
