@@ -1194,21 +1194,4 @@ ThrottlerModule.forRoot({
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
-
-## Support & Contact
-
-- **Documentation**: [Full API Docs](http://localhost:5000/api)
-- **Issues**: [GitHub Issues](https://github.com/yourusername/chuks-kitchen-api/issues)
-- **Email**: support@chukskitchen.com
-
-
-<div align="center">
-
-**Built with  for Chuks Kitchen**
-
-[![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/yourusername/chuks-kitchen-api)
-[![Documentation](https://img.shields.io/badge/Documentation-0078D4?style=for-the-badge&logo=markdown&logoColor=white)](http://localhost:5000/api)
-
-**[⬆ Back to Top](#-authentication--authorization-system)**
-
 </div>
