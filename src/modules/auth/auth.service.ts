@@ -21,7 +21,8 @@ import { generateReferralCode, hashToken } from '@/common/utils/helpers';
 import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
 import { OTPPurpose } from '../notifications/services/otp.service';
 import { UserRole } from '@/common/enums';
-//import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
+import { AdminRegisterDto } from './dto/admin-register.dto';
+import { AdminLoginDto } from './dto/admin-login.dto';
 
 @Injectable()
 export class AuthService {
@@ -33,49 +34,22 @@ export class AuthService {
     private notificationsService: NotificationsService,
   ) {}
 
+  // ---------------------------------------------------------------------------
+  // PUBLIC: User Auth
+  // ---------------------------------------------------------------------------
+
   /**
    * Register a new user
    */
   async register(registerDto: RegisterDto) {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { email, phoneNumber, password, firstName, lastName, confirmPassword, referralCode } =
-      registerDto;
+    const { email, phoneNumber, password, firstName, lastName, referralCode } = registerDto;
 
-    // Check if user already exists
-    const existingUser = await this.prisma.user.findFirst({
-      where: {
-        OR: [{ email }, ...(phoneNumber ? [{ phoneNumber }] : [])],
-      },
-    });
+    await this.assertEmailAvailable(email);
 
-    if (existingUser) {
-      if (existingUser.isEmailVerified) {
-        throw new ConflictException({
-          code: ErrorCodes.EMAIL_ALREADY_EXISTS,
-          message: 'User with this email already exists',
-        });
-      }
-
-      // If user exists but not verified, and registration is > 24h old, delete old account
-      const hoursSinceRegistration =
-        (Date.now() - existingUser.createdAt.getTime()) / (1000 * 60 * 60);
-
-      if (hoursSinceRegistration > 24) {
-        await this.prisma.user.delete({ where: { id: existingUser.id } });
-      } else {
-        throw new BadRequestException({
-          code: ErrorCodes.EMAIL_NOT_VERIFIED,
-          message:
-            'Please check your email for verification code or request a new one',
-        });
-      }
-    }
-
-    // NEW CODE (checks both user referrals AND promo codes)
+    // Resolve referrer (user referral code OR promo code)
     let referrerId: string | null = null;
 
     if (referralCode) {
-      // First, check if it's a user's referral code
       const referringUser = await this.prisma.user.findFirst({
         where: { referralCode },
       });
@@ -83,7 +57,6 @@ export class AuthService {
       if (referringUser) {
         referrerId = referringUser.id;
       } else {
-        // If not a user code, check if it's a promotional code
         const promoCode = await this.prisma.referralCode.findFirst({
           where: {
             code: referralCode,
@@ -99,7 +72,6 @@ export class AuthService {
           });
         }
 
-        // Check usage limits for promo codes
         if (promoCode.maxUses && promoCode.currentUses >= promoCode.maxUses) {
           throw new BadRequestException({
             code: ErrorCodes.REFERRAL_CODE_MAX_USES,
@@ -107,32 +79,25 @@ export class AuthService {
           });
         }
 
-        referrerId = promoCode.userId; // May be null for system promo codes
+        referrerId = promoCode.userId;
       }
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(
-      password,
-      AppConstants.PASSWORD.SALT_ROUNDS,
-    );
+    const hashedPassword = await this.hashPassword(password);
+    const newUserReferralCode = await this.generateUniqueReferralCode();
 
-    // Generate unique referral code for new user
-    const newUserReferralCode = generateReferralCode();
-
-    // Create user
     const user = await this.prisma.user.create({
       data: {
         email,
         phoneNumber: phoneNumber || null,
-        password: hashedPassword, // Only save the hashed password
+        password: hashedPassword,
         firstName,
         lastName,
         referralCode: newUserReferralCode,
         referredBy: referrerId,
       },
     });
-    // Generate and send OTP
+
     await this.notificationsService.generateAndSendOTP(
       user.id,
       user.email,
@@ -143,10 +108,46 @@ export class AuthService {
     return {
       success: true,
       message: 'Registration successful. Please verify your email.',
+      data: { email: user.email, requiresVerification: true },
+    };
+  }
+
+  /**
+   * Register a new admin user
+   */
+  async registerAdmin(adminRegisterDto: AdminRegisterDto) {
+    const { email, password, firstName, lastName, adminSecret } = adminRegisterDto;
+
+    this.assertValidAdminSecret(adminSecret);
+    await this.assertEmailAvailable(email);
+
+    const hashedPassword = await this.hashPassword(password);
+    const adminReferralCode = await this.generateUniqueReferralCode();
+
+    const admin = await this.prisma.user.create({
       data: {
-        email: user.email,
-        requiresVerification: true,
+        email,
+        password: hashedPassword,
+        firstName,
+        lastName,
+        role: UserRole.ADMIN,
+        referralCode: adminReferralCode,
+        isEmailVerified: false,
+        isPhoneVerified: false,
       },
+    });
+
+    await this.notificationsService.generateAndSendOTP(
+      admin.id,
+      admin.email,
+      OTPPurpose.EMAIL_VERIFICATION,
+      admin.firstName,
+    );
+
+    return {
+      success: true,
+      message: 'Admin registration successful. Please verify your email.',
+      data: { email: admin.email, role: admin.role, requiresVerification: true },
     };
   }
 
@@ -156,17 +157,7 @@ export class AuthService {
   async verifyEmail(verifyEmailDto: VerifyEmailDto) {
     const { email, code } = verifyEmailDto;
 
-    // Find user
-    const user = await this.prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (!user) {
-      throw new NotFoundException({
-        code: ErrorCodes.USER_NOT_FOUND,
-        message: 'User not found',
-      });
-    }
+    const user = await this.findUserByEmailOrFail(email);
 
     if (user.isEmailVerified) {
       throw new BadRequestException({
@@ -175,148 +166,58 @@ export class AuthService {
       });
     }
 
-    // Verify OTP
-    const isValid = await this.notificationsService.verifyOTP(
-      user.id,
-      code,
-      OTPPurpose.EMAIL_VERIFICATION,
-    );
+    await this.verifyOtpOrFail(user.id, code, OTPPurpose.EMAIL_VERIFICATION);
 
-    if (!isValid) {
-      throw new UnauthorizedException({
-        code: ErrorCodes.INVALID_OTP,
-        message: 'Invalid or expired OTP',
-      });
-    }
-
-    // Update user and increment referral code usage in transaction
     const updatedUser = await this.prisma.$transaction(async (tx) => {
-      // Update user
       const updated = await tx.user.update({
         where: { id: user.id },
-        data: {
-          isEmailVerified: true,
-          lastLogin: new Date(),
-        },
-        include: {
-          referrer: {
-            select: {
-              referralCode: true,
-            },
-          },
-        },
+        data: { isEmailVerified: true, lastLogin: new Date() },
+        include: { referrer: { select: { referralCode: true } } },
       });
 
-      // Increment referral code usage if user was referred
       if (updated.referredBy) {
         await tx.referralCode.updateMany({
-          where: {
-            userId: updated.referredBy,
-            isActive: true,
-          },
-          data: {
-            currentUses: { increment: 1 },
-          },
+          where: { userId: updated.referredBy, isActive: true },
+          data: { currentUses: { increment: 1 } },
         });
       }
 
       return updated;
     });
 
-    // Send welcome email
-    await this.notificationsService.sendWelcomeEmail(
-      user.email,
-      user.firstName,
-    );
+    await this.notificationsService.sendWelcomeEmail(user.email, user.firstName);
 
-    // Generate tokens
     const tokens = await this.generateTokens(user.id, user.email, user.role);
-
-    // Store refresh token in Redis
     await this.storeRefreshToken(user.id, tokens.refreshToken);
 
     return {
       success: true,
       message: 'Email verified successfully',
-      data: {
-        user: this.sanitizeUser(updatedUser),
-        tokens,
-      },
+      data: { user: this.sanitizeUser(updatedUser), tokens },
     };
   }
 
   /**
-   * Login user
+   * Login a regular user
    */
   async login(loginDto: LoginDto) {
-    const { email, password } = loginDto;
+    const user = await this.authenticateUser(loginDto.email, loginDto.password);
+    return this.buildLoginResponse(user, 'Login successful');
+  }
 
-    // Find user
-    const user = await this.prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (!user) {
-      throw new UnauthorizedException({
-        code: ErrorCodes.INVALID_CREDENTIALS,
-        message: 'Invalid email or password',
-      });
-    }
-
-    // Check password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-
-    if (!isPasswordValid) {
-      throw new UnauthorizedException({
-        code: ErrorCodes.INVALID_CREDENTIALS,
-        message: 'Invalid email or password',
-      });
-    }
-
-    // Check if email is verified
-    if (!user.isEmailVerified) {
-      throw new UnauthorizedException({
-        code: ErrorCodes.EMAIL_NOT_VERIFIED,
-        message: 'Please verify your email before logging in',
-      });
-    }
-
-    // Update last login
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: { lastLogin: new Date() },
-    });
-
-    // Generate tokens
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
-
-    // Store refresh token
-    await this.storeRefreshToken(user.id, tokens.refreshToken);
-
-    return {
-      success: true,
-      message: 'Login successful',
-      data: {
-        user: this.sanitizeUser(user),
-        tokens,
-      },
-    };
+  /**
+   * Login an admin user
+   */
+  async loginAdmin(adminLoginDto: AdminLoginDto) {
+    const admin = await this.authenticateUser(adminLoginDto.email, adminLoginDto.password, UserRole.ADMIN);
+    return this.buildLoginResponse(admin, 'Admin login successful');
   }
 
   /**
    * Resend OTP
    */
   async resendOtp(email: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (!user) {
-      throw new NotFoundException({
-        code: ErrorCodes.USER_NOT_FOUND,
-        message: 'User not found',
-      });
-    }
+    const user = await this.findUserByEmailOrFail(email);
 
     if (user.isEmailVerified) {
       throw new BadRequestException({
@@ -325,20 +226,8 @@ export class AuthService {
       });
     }
 
-    // Check rate limiting
-    const canRequest = await this.notificationsService.canRequestOTP(
-      user.id,
-      OTPPurpose.EMAIL_VERIFICATION,
-    );
+    await this.assertOtpRateLimitOrFail(user.id, OTPPurpose.EMAIL_VERIFICATION);
 
-    if (!canRequest) {
-      throw new BadRequestException({
-        code: ErrorCodes.TOO_MANY_OTP_REQUESTS,
-        message: `Please wait ${AppConstants.OTP.RESEND_COOLDOWN_MINUTES} minutes before requesting another OTP`,
-      });
-    }
-
-    // Generate and send new OTP
     await this.notificationsService.generateAndSendOTP(
       user.id,
       user.email,
@@ -349,22 +238,18 @@ export class AuthService {
     return {
       success: true,
       message: 'OTP sent successfully',
-      data: {
-        email: user.email,
-      },
+      data: { email: user.email },
     };
   }
 
   /**
-   * Forgot password - send OTP
+   * Forgot password — send OTP
    */
   async forgotPassword(email: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { email },
-    });
+    const user = await this.prisma.user.findUnique({ where: { email } });
 
+    // Avoid revealing whether the email exists
     if (!user) {
-      // Don't reveal if user exists
       return {
         success: true,
         message: 'If the email exists, a reset code has been sent',
@@ -372,20 +257,8 @@ export class AuthService {
       };
     }
 
-    // Check rate limiting
-    const canRequest = await this.notificationsService.canRequestOTP(
-      user.id,
-      OTPPurpose.PASSWORD_RESET,
-    );
+    await this.assertOtpRateLimitOrFail(user.id, OTPPurpose.PASSWORD_RESET);
 
-    if (!canRequest) {
-      throw new BadRequestException({
-        code: ErrorCodes.TOO_MANY_OTP_REQUESTS,
-        message: 'Please wait before requesting another reset code',
-      });
-    }
-
-    // Generate and send OTP
     await this.notificationsService.generateAndSendOTP(
       user.id,
       user.email,
@@ -405,44 +278,18 @@ export class AuthService {
   async resetPassword(resetPasswordDto: ResetPasswordDto) {
     const { email, code, newPassword } = resetPasswordDto;
 
-    const user = await this.prisma.user.findUnique({
-      where: { email },
-    });
+    const user = await this.findUserByEmailOrFail(email);
 
-    if (!user) {
-      throw new NotFoundException({
-        code: ErrorCodes.USER_NOT_FOUND,
-        message: 'User not found',
-      });
-    }
+    await this.verifyOtpOrFail(user.id, code, OTPPurpose.PASSWORD_RESET);
 
-    // Verify OTP
-    const isValid = await this.notificationsService.verifyOTP(
-      user.id,
-      code,
-      OTPPurpose.PASSWORD_RESET,
-    );
+    const hashedPassword = await this.hashPassword(newPassword);
 
-    if (!isValid) {
-      throw new UnauthorizedException({
-        code: ErrorCodes.INVALID_OTP,
-        message: 'Invalid or expired OTP',
-      });
-    }
-
-    // Hash new password
-    const hashedPassword = await bcrypt.hash(
-      newPassword,
-      AppConstants.PASSWORD.SALT_ROUNDS,
-    );
-
-    // Update password
     await this.prisma.user.update({
       where: { id: user.id },
       data: { password: hashedPassword },
     });
 
-    // Invalidate all refresh tokens
+    // Invalidate all sessions
     await this.redisService.delete(`refresh_token:${user.id}`);
 
     return {
@@ -465,29 +312,17 @@ export class AuthService {
         throw new UnauthorizedException('Invalid token type');
       }
 
-      // Check if refresh token exists in Redis
-      const storedTokenHash = await this.redisService.get(
-        `refresh_token:${payload.sub}`,
-      );
+      const storedTokenHash = await this.redisService.get(`refresh_token:${payload.sub}`);
 
       if (!storedTokenHash) {
         throw new UnauthorizedException('Refresh token not found');
       }
 
-      // Verify token hash
-      const tokenHash = hashToken(refreshToken);
-      if (tokenHash !== storedTokenHash) {
+      if (hashToken(refreshToken) !== storedTokenHash) {
         throw new UnauthorizedException('Invalid refresh token');
       }
 
-      // Generate new tokens
-      const tokens = await this.generateTokens(
-        payload.sub,
-        payload.email,
-        payload.role,
-      );
-
-      // Store new refresh token
+      const tokens = await this.generateTokens(payload.sub, payload.email, payload.role);
       await this.storeRefreshToken(payload.sub, tokens.refreshToken);
 
       return {
@@ -508,31 +343,174 @@ export class AuthService {
    */
   async logout(userId: string) {
     await this.redisService.delete(`refresh_token:${userId}`);
+    return { success: true, message: 'Logged out successfully', data: null };
+  }
+
+  // ---------------------------------------------------------------------------
+  // PRIVATE: Shared Auth Logic
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Locate + validate credentials for both user and admin login paths.
+   * Pass `requiredRole` to enforce role-based access (e.g. admin login).
+   */
+  private async authenticateUser(email: string, password: string, requiredRole?: UserRole) {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+
+    // Unified "invalid credentials" — don't leak whether the account exists
+    if (!user) {
+      throw new UnauthorizedException({
+        code: ErrorCodes.INVALID_CREDENTIALS,
+        message: 'Invalid email or password',
+      });
+    }
+
+    if (requiredRole && user.role !== requiredRole) {
+      throw new UnauthorizedException({
+        code: ErrorCodes.UNAUTHORIZED,
+        message: 'Access denied. Admin credentials required.',
+      });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException({
+        code: ErrorCodes.INVALID_CREDENTIALS,
+        message: 'Invalid email or password',
+      });
+    }
+
+    if (!user.isEmailVerified) {
+      throw new UnauthorizedException({
+        code: ErrorCodes.EMAIL_NOT_VERIFIED,
+        message: 'Please verify your email before logging in',
+      });
+    }
+
+    return user;
+  }
+
+  /**
+   * Finalise a successful login: stamp lastLogin, generate tokens, build response.
+   * Used by both `login` and `loginAdmin`.
+   */
+  private async buildLoginResponse(user: any, message: string) {
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastLogin: new Date() },
+    });
+
+    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    await this.storeRefreshToken(user.id, tokens.refreshToken);
 
     return {
       success: true,
-      message: 'Logged out successfully',
-      data: null,
+      message,
+      data: { user: this.sanitizeUser(user), tokens },
     };
   }
 
   /**
-   * Generate JWT tokens
+   * Check whether an email is free to register.
+   * Handles the "unverified stale account" cleanup shared by register + registerAdmin.
    */
-  private async generateTokens(userId: string, email: string, role: UserRole, ) {
-    const accessPayload: JwtPayload = {
-      sub: userId,
-      email,
-      role,
-      type: 'access',
-    };
+  private async assertEmailAvailable(email: string) {
+    const existingUser = await this.prisma.user.findUnique({ where: { email } });
 
-    const refreshPayload: JwtPayload = {
-      sub: userId,
-      email,
-      role,
-      type: 'refresh',
-    };
+    if (!existingUser) return;
+
+    if (existingUser.isEmailVerified) {
+      throw new ConflictException({
+        code: ErrorCodes.EMAIL_ALREADY_EXISTS,
+        message: 'User with this email already exists',
+      });
+    }
+
+    const hoursSinceRegistration =
+      (Date.now() - existingUser.createdAt.getTime()) / (1000 * 60 * 60);
+
+    if (hoursSinceRegistration > 24) {
+      await this.prisma.user.delete({ where: { id: existingUser.id } });
+    } else {
+      throw new BadRequestException({
+        code: ErrorCodes.EMAIL_NOT_VERIFIED,
+        message: 'Please check your email for verification code or request a new one',
+      });
+    }
+  }
+
+  /**
+   * Validate admin secret from config — throws if missing or mismatched.
+   */
+  private assertValidAdminSecret(adminSecret: string) {
+    const expectedAdminSecret = this.configService.get('ADMIN_SECRET');
+
+    if (!expectedAdminSecret) {
+      throw new ConflictException({
+        code: ErrorCodes.INTERNAL_ERROR,
+        message: 'Admin registration is not configured',
+      });
+    }
+
+    if (adminSecret !== expectedAdminSecret) {
+      throw new UnauthorizedException({
+        code: ErrorCodes.UNAUTHORIZED,
+        message: 'Invalid admin secret key',
+      });
+    }
+  }
+
+  /**
+   * Find a user by email or throw NotFoundException.
+   */
+  private async findUserByEmailOrFail(email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      throw new NotFoundException({
+        code: ErrorCodes.USER_NOT_FOUND,
+        message: 'User not found',
+      });
+    }
+
+    return user;
+  }
+
+  /**
+   * Verify an OTP or throw UnauthorizedException.
+   */
+  private async verifyOtpOrFail(userId: string, code: string, purpose: OTPPurpose) {
+    const isValid = await this.notificationsService.verifyOTP(userId, code, purpose);
+
+    if (!isValid) {
+      throw new UnauthorizedException({
+        code: ErrorCodes.INVALID_OTP,
+        message: 'Invalid or expired OTP',
+      });
+    }
+  }
+
+  /**
+   * Assert OTP rate limit has not been exceeded or throw BadRequestException.
+   */
+  private async assertOtpRateLimitOrFail(userId: string, purpose: OTPPurpose) {
+    const canRequest = await this.notificationsService.canRequestOTP(userId, purpose);
+
+    if (!canRequest) {
+      throw new BadRequestException({
+        code: ErrorCodes.TOO_MANY_OTP_REQUESTS,
+        message: `Please wait ${AppConstants.OTP.RESEND_COOLDOWN_MINUTES} minutes before requesting another OTP`,
+      });
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // PRIVATE: Token & Crypto Helpers
+  // ---------------------------------------------------------------------------
+
+  private async generateTokens(userId: string, email: string, role: UserRole) {
+    const accessPayload: JwtPayload = { sub: userId, email, role, type: 'access' };
+    const refreshPayload: JwtPayload = { sub: userId, email, role, type: 'refresh' };
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(accessPayload, {
@@ -548,22 +526,36 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  /**
-   * Store refresh token in Redis
-   */
   private async storeRefreshToken(userId: string, refreshToken: string) {
     const tokenHash = hashToken(refreshToken);
-    const ttl = 7 * 24 * 60 * 60; // 7 days in seconds
-
+    const ttl = 7 * 24 * 60 * 60; // 7 days
     await this.redisService.set(`refresh_token:${userId}`, tokenHash, ttl);
   }
 
+  private async hashPassword(password: string) {
+    return bcrypt.hash(password, AppConstants.PASSWORD.SALT_ROUNDS);
+  }
+
   /**
-   * Remove sensitive data from user object
+   * Loop until a referral code not already in use is found.
+   * Used by both register (user) and registerAdmin.
    */
+  private async generateUniqueReferralCode(): Promise<string> {
+    let code: string;
+    let exists = true;
+
+    while (exists) {
+      code = generateReferralCode();
+      const user = await this.prisma.user.findUnique({ where: { referralCode: code } });
+      exists = !!user;
+    }
+
+    return code;
+  }
+
   private sanitizeUser(user: any) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { password: _password, ...sanitized } = user;
-  return sanitized;
-}
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _password, ...sanitized } = user;
+    return sanitized;
+  }
 }
