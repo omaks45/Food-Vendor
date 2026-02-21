@@ -32,6 +32,8 @@ import { Public } from '@/common/decorators/public.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { AppConstants } from '@/common/constants';
+import { AdminRegisterDto } from './dto/admin-register.dto';
+import { AdminLoginDto } from './dto/admin-login.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -55,6 +57,51 @@ export class AuthController {
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }
+  
+  /**
+   * Admin Registration
+   */
+  @Post('admin/register')
+  @ApiTags('Admin Authentication')
+  @ApiOperation({ summary: 'Register a new admin user' })
+  @ApiResponse({
+    status: 201,
+    description: 'Admin registered successfully',
+    type: RegisterResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Validation error or email already exists',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid admin secret key',
+  })
+  async registerAdmin(
+    @Body() adminRegisterDto: AdminRegisterDto,
+  ): Promise<any> {
+    return this.authService.registerAdmin(adminRegisterDto);
+  }
+
+  /**
+   * Admin Login
+   */
+  @Post('admin/login')
+  @ApiTags('Admin Authentication')
+  @ApiOperation({ summary: 'Admin login' })
+  @ApiResponse({
+    status: 200,
+    description: 'Admin logged in successfully',
+    type: AuthResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid credentials or not an admin',
+  })
+  async loginAdmin(@Body() adminLoginDto: AdminLoginDto): Promise<any> {
+    return this.authService.loginAdmin(adminLoginDto);
+  }
+
 
   @Public()
   @Post('verify-email')
