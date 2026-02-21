@@ -304,6 +304,10 @@ Edit `.env` with your credentials (see [Environment Configuration](#-environment
 ### Step 4: Database Setup
 
 ```bash
+
+# Prisma initialization
+npx prisma init
+
 # Generate Prisma Client
 npx prisma generate
 
