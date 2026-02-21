@@ -44,7 +44,7 @@ A **production-ready**, **scalable**, and **secure** authentication system built
 
 ---
 
-## ✨ Features
+##  Features
 
 <details open>
 <summary><b> Core Authentication</b></summary>
@@ -118,7 +118,7 @@ A **production-ready**, **scalable**, and **secure** authentication system built
 
 ---
 
-## 🛠 Technology Stack
+##  Technology Stack
 
 | Category | Technology | Version | Purpose |
 |----------|-----------|---------|---------|
@@ -322,9 +322,9 @@ npm run build
 npm run start:prod
 ```
 
-The API will be available at `http://localhost:5000`
+The API will be available at `http://localhost:5000/api/v1`
 
-**Swagger Documentation**: `http://localhost:5000/api`
+**Swagger Documentation**: `http://localhost:5000/api/docs`
 
 ---
 
@@ -407,7 +407,7 @@ ADMIN_SECRET=your-secure-admin-secret-key-2026
 
 ---
 
-## 🔌 API Endpoints
+##  API Endpoints
 
 ### Base URL
 ```
