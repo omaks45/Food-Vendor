@@ -1051,36 +1051,7 @@ Headers: {
 }
 ```
 
-### Using cURL
 
-#### Register
-```bash
-curl -X POST http://localhost:5000/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "test@example.com",
-    "firstName": "Test",
-    "lastName": "User",
-    "password": "Test123!",
-    "confirmPassword": "Test123!"
-  }'
-```
-
-#### Login
-```bash
-curl -X POST http://localhost:5000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "test@example.com",
-    "password": "Test123!"
-  }'
-```
-
-#### Get Profile
-```bash
-curl -X GET http://localhost:5000/api/v1/users/profile \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
 
 ### Admin Testing
 
@@ -1139,55 +1110,12 @@ curl -X POST http://localhost:5000/api/v1/auth/admin/login \
 | `FORBIDDEN` | 403 | Insufficient permissions | User lacks required role |
 | `SERVER_ERROR` | 500 | Internal server error | Unexpected server error |
 
-### Example Error Response
 
-```json
-{
-  "success": false,
-  "message": "Invalid email or password",
-  "error": {
-    "code": "INVALID_CREDENTIALS",
-    "statusCode": 401,
-    "timestamp": "2026-02-21T10:30:00.000Z",
-    "path": "/api/v1/auth/login"
-  }
-}
 ```
 
 ---
 
 ## Performance Considerations
-
-### Database Optimization
-
-```prisma
-// Indexed fields for fast queries
-@@index([email])
-@@index([phoneNumber])
-@@index([referralCode])
-@@index([userId, purpose, expiresAt])
-@@index([isActive])
-```
-
-### Redis Caching
-
-- Refresh tokens stored in Redis (in-memory)
-- O(1) lookup complexity
-- Automatic TTL expiration
-- Reduces database load
-
-### Rate Limiting
-
-```typescript
-// Global rate limit
-ThrottlerModule.forRoot({
-  ttl: 60,
-  limit: 100, // 100 requests per minute
-})
-
-// Sensitive endpoints
-@Throttle(3, 3600) // 3 OTP requests per hour
-```
 
 ## License
 
