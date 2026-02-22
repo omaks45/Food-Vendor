@@ -2,7 +2,7 @@
 export class CreateFoodDto {}
 
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, MinLength, MaxLength, IsOptional, IsInt, Min, IsUrl } from 'class-validator';
+import { IsString, IsNotEmpty, MinLength, MaxLength, IsOptional, IsInt, Min } from 'class-validator';
 
 export class CreateFoodCategoryDto {
     @ApiProperty({
@@ -24,13 +24,6 @@ export class CreateFoodCategoryDto {
     @MaxLength(500)
     description?: string;
 
-    @ApiPropertyOptional({
-        example: 'https://res.cloudinary.com/demo/image/upload/v1234/category.jpg',
-        description: 'Category image URL',
-    })
-    @IsOptional()
-    @IsUrl()
-    imageUrl?: string;
 
     @ApiPropertyOptional({
         example: 1,

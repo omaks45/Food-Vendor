@@ -13,6 +13,11 @@ import {
     Query,
     HttpCode,
     HttpStatus,
+    UploadedFile,
+    ParseFilePipe,
+    MaxFileSizeValidator,
+    FileTypeValidator,
+    UseInterceptors,
 } from '@nestjs/common';
 import {
     ApiTags,
@@ -20,7 +25,10 @@ import {
     ApiResponse,
     ApiBearerAuth,
     ApiQuery,
+    ApiConsumes,
+    ApiBody,
 } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { FoodCategoryService } from '../services/food-category.service';
 import { CreateFoodCategoryDto } from '../dto/create-food-category.dto';
 import { UpdateFoodCategoryDto } from '../dto/update-food-category.dto';
@@ -42,22 +50,43 @@ export class FoodCategoryController {
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(UserRole.ADMIN)
     @ApiBearerAuth()
+    @UseInterceptors(FileInterceptor('image'))
+    @ApiConsumes('multipart/form-data')
     @HttpCode(HttpStatus.CREATED)
     @ApiOperation({ summary: 'Create a new food category (Admin only)' })
-    @ApiResponse({
-        status: 201,
-        description: 'Category created successfully',
+    @ApiBody({
+    schema: {
+        type: 'object',
+        required: ['name'],
+        properties: {
+        name:         { type: 'string', example: 'Rice Dishes' },
+        description:  { type: 'string', example: 'All rice based meals' },
+        displayOrder: { type: 'number', example: 0 },
+        image: {
+            type: 'string',
+            format: 'binary',
+            description: 'Category image (max 5MB, jpg/jpeg/png)',
+        },
+        },
+    },
     })
-    @ApiResponse({
-        status: 401,
-        description: 'Unauthorized - Admin access required',
-    })
-    @ApiResponse({
-        status: 409,
-        description: 'Category already exists',
-    })
-    async create(@Body() createFoodCategoryDto: CreateFoodCategoryDto) {
-        return this.foodCategoryService.create(createFoodCategoryDto);
+    @ApiResponse({ status: 201, description: 'Category created successfully' })
+    @ApiResponse({ status: 401, description: 'Unauthorized - Admin access required' })
+    @ApiResponse({ status: 409, description: 'Category already exists' })
+    async create(
+    @Body() createFoodCategoryDto: CreateFoodCategoryDto,
+    @UploadedFile(
+        new ParseFilePipe({
+        validators: [
+            new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // 5MB
+            new FileTypeValidator({ fileType: /(jpg|jpeg|png)$/ }),
+        ],
+        fileIsRequired: false, // optional — category can exist without image
+        }),
+    )
+    image?: Express.Multer.File,
+    ) {
+    return this.foodCategoryService.create(createFoodCategoryDto, image);
     }
 
     /**
@@ -108,25 +137,41 @@ export class FoodCategoryController {
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(UserRole.ADMIN)
     @ApiBearerAuth()
+    @UseInterceptors(FileInterceptor('image'))
+    @ApiConsumes('multipart/form-data')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({ summary: 'Update a food category (Admin only)' })
-    @ApiResponse({
-        status: 200,
-        description: 'Category updated successfully',
-    })
-    @ApiResponse({
-        status: 401,
-        description: 'Unauthorized - Admin access required',
-    })
-    @ApiResponse({
-        status: 404,
-        description: 'Category not found',
+    @ApiBody({
+    schema: {
+        type: 'object',
+        properties: {
+        name:         { type: 'string' },
+        description:  { type: 'string' },
+        displayOrder: { type: 'number' },
+        isActive:     { type: 'boolean' },
+        image: {
+            type: 'string',
+            format: 'binary',
+            description: 'New category image (optional)',
+        },
+        },
+    },
     })
     async update(
-        @Param('id') id: string,
-        @Body() updateFoodCategoryDto: UpdateFoodCategoryDto,
+    @Param('id') id: string,
+    @Body() updateFoodCategoryDto: UpdateFoodCategoryDto,
+    @UploadedFile(
+        new ParseFilePipe({
+        validators: [
+            new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+            new FileTypeValidator({ fileType: /(jpg|jpeg|png)$/ }),
+        ],
+        fileIsRequired: false,
+        }),
+    )
+    image?: Express.Multer.File,
     ) {
-        return this.foodCategoryService.update(id, updateFoodCategoryDto);
+    return this.foodCategoryService.update(id, updateFoodCategoryDto, image);
     }
 
     /**

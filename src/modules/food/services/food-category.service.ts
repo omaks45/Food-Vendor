@@ -11,80 +11,88 @@ import { PrismaService } from '@/modules/database/prisma.service';
 import { CreateFoodCategoryDto } from '../dto/create-food-category.dto';
 import { UpdateFoodCategoryDto } from '../dto/update-food-category.dto';
 import { ErrorCodes } from '@/common/constants';
+import { CloudinaryService } from '@/modules/cloudinary/cloudinary.service';
 
 @Injectable()
 export class FoodCategoryService {
     private readonly logger = new Logger(FoodCategoryService.name);
 
-    constructor(private prisma: PrismaService) {}
+    constructor(private prisma: PrismaService, private cloudinaryService: CloudinaryService, ) {}
 
     /**
      * Create a new food category
      * Admin only
      */
-    async create(createFoodCategoryDto: CreateFoodCategoryDto) {
-        const { name, description, imageUrl, displayOrder } = createFoodCategoryDto;
-
-        // Generate slug from name
+    async create(createFoodCategoryDto: CreateFoodCategoryDto, image?: Express.Multer.File) {
+        const { name, description, displayOrder } = createFoodCategoryDto;
         const slug = this.generateSlug(name);
 
-        // Check if category with same name or slug exists
         const existingCategory = await this.prisma.foodCategory.findFirst({
-        where: {
-            OR: [{ name }, { slug }],
-        },
+            where: { OR: [{ name }, { slug }] },
         });
 
         if (existingCategory) {
-        throw new ConflictException({
+            throw new ConflictException({
             code: ErrorCodes.RESOURCE_ALREADY_EXISTS,
             message: 'Category with this name already exists',
-        });
+            });
         }
 
+        // Upload to Cloudinary first, then extract the URL and publicId
+        let imageUrl: string | undefined;
+        let imagePublicId: string | undefined;
+
+        if (image) {
+            const uploaded = await this.cloudinaryService.uploadImage(image, 'categories');
+            imageUrl = uploaded.secure_url;
+            imagePublicId = uploaded.public_id;
+        }
+
+        // Now pass the string URL — not the file object
         const category = await this.prisma.foodCategory.create({
-        data: {
+            data: {
             name,
             slug,
             description,
-            imageUrl,
+            imageUrl,         // ← string URL from Cloudinary
+            imagePublicId,    // ← needed later for deletion on update
             displayOrder: displayOrder ?? 0,
-        },
+            },
         });
 
         this.logger.log(`Created food category: ${category.name} (${category.id})`);
 
         return {
-        success: true,
-        message: 'Food category created successfully',
-        data: category,
+            success: true,
+            message: 'Food category created successfully',
+            data: category,
         };
-    }
+        }
 
-    /**
-     * Get all food categories (public)
-     * Optionally filter by active status
-     */
-    async findAll(activeOnly: boolean = false) {
-        const where = activeOnly ? { isActive: true } : {};
+        /**
+         * Get all food categories (public)
+         * Optionally filter by active status
+         */
+        async findAll(activeOnly: boolean = false) {
+            const where = activeOnly ? { isActive: true } : {};
 
-        const categories = await this.prisma.foodCategory.findMany({
-        where,
-        orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
-        include: {
-            _count: {
-            select: { foodItems: true },
+            const categories = await this.prisma.foodCategory.findMany({
+            where,
+            orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
+            include: {
+                _count: {
+                select: { foodItems: true },
+                },
             },
-        },
-        });
+            });
 
-        return {
-        success: true,
-        message: 'Categories retrieved successfully',
-        data: {
-            categories,
-            total: categories.length,
-        },
+            return {
+            success: true,
+            message: 'Categories retrieved successfully',
+            data: {
+                categories,
+                total: categories.length,
+            },
         };
     }
 
@@ -125,52 +133,59 @@ export class FoodCategoryService {
      * Update a food category
      * Admin only
      */
-    async update(id: string, updateFoodCategoryDto: UpdateFoodCategoryDto) {
-        // Check if category exists
-        await this.findCategoryByIdOrFail(id);
+    async update(id: string, updateFoodCategoryDto: UpdateFoodCategoryDto, image?: Express.Multer.File) {
+        const category = await this.findCategoryByIdOrFail(id);
+        const { name, description, isActive, displayOrder } = updateFoodCategoryDto; // ← removed imageUrl
 
-        const { name, description, imageUrl, isActive, displayOrder } = updateFoodCategoryDto;
-
-        // If name is being updated, generate new slug and check for conflicts
         let slug: string | undefined;
         if (name) {
-        slug = this.generateSlug(name);
+            slug = this.generateSlug(name);
 
-        const existingCategory = await this.prisma.foodCategory.findFirst({
-            where: {
-            AND: [
-                { id: { not: id } },
-                { OR: [{ name }, { slug }] },
-            ],
-            },
-        });
-
-        if (existingCategory) {
-            throw new ConflictException({
-            code: ErrorCodes.RESOURCE_ALREADY_EXISTS,
-            message: 'Category with this name already exists',
+            const existingCategory = await this.prisma.foodCategory.findFirst({
+            where: { AND: [{ id: { not: id } }, { OR: [{ name }, { slug }] }] },
             });
+
+            if (existingCategory) {
+            throw new ConflictException({
+                code: ErrorCodes.RESOURCE_ALREADY_EXISTS,
+                message: 'Category with this name already exists',
+            });
+            }
         }
+
+        // Handle image replacement
+        let imageUrl: string | undefined;
+        let imagePublicId: string | undefined;
+
+        if (image) {
+            // Delete old image from Cloudinary before uploading new one
+            if (category.imagePublicId) {
+            await this.cloudinaryService.deleteImage(category.imagePublicId);
+            }
+
+            const uploaded = await this.cloudinaryService.uploadImage(image, 'categories');
+            imageUrl = uploaded.secure_url;
+            imagePublicId = uploaded.public_id;
         }
 
         const updatedCategory = await this.prisma.foodCategory.update({
-        where: { id },
-        data: {
+            where: { id },
+            data: {
             name,
             slug,
             description,
-            imageUrl,
+            ...(imageUrl && { imageUrl, imagePublicId }), // ← only update if new image uploaded
             isActive,
             displayOrder,
-        },
+            },
         });
 
         this.logger.log(`Updated food category: ${updatedCategory.name} (${id})`);
 
         return {
-        success: true,
-        message: 'Category updated successfully',
-        data: updatedCategory,
+            success: true,
+            message: 'Category updated successfully',
+            data: updatedCategory,
         };
     }
 
