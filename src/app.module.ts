@@ -17,6 +17,7 @@ import { UsersModule } from './modules/users/users.module';
 
 // Guards
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { FoodModule } from './modules/food/food.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
     // Feature Modules
     AuthModule,
     UsersModule,
+    FoodModule
   ],
   providers: [
     // Global Guards
