@@ -1,0 +1,45 @@
+/* eslint-disable prettier/prettier */
+export class CreateFoodDto {}
+// src/modules/food/dto/create-food-category.dto.ts
+
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsString, IsNotEmpty, MinLength, MaxLength, IsOptional, IsInt, Min, IsUrl } from 'class-validator';
+
+export class CreateFoodCategoryDto {
+    @ApiProperty({
+        example: 'Jollof Rice and Entrees',
+        description: 'Category name',
+    })
+    @IsString()
+    @IsNotEmpty()
+    @MinLength(3)
+    @MaxLength(100)
+    name: string;
+
+    @ApiPropertyOptional({
+        example: 'Delicious Jollof rice served with your choice of protein and sides',
+        description: 'Category description',
+    })
+    @IsOptional()
+    @IsString()
+    @MaxLength(500)
+    description?: string;
+
+    @ApiPropertyOptional({
+        example: 'https://res.cloudinary.com/demo/image/upload/v1234/category.jpg',
+        description: 'Category image URL',
+    })
+    @IsOptional()
+    @IsUrl()
+    imageUrl?: string;
+
+    @ApiPropertyOptional({
+        example: 1,
+        description: 'Display order (lower numbers appear first)',
+        default: 0,
+    })
+    @IsOptional()
+    @IsInt()
+    @Min(0)
+    displayOrder?: number;
+}
