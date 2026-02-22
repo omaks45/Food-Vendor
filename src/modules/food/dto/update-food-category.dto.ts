@@ -1,19 +1,19 @@
 /* eslint-disable prettier/prettier */
-export class CreateFoodDto {}
 
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, MinLength, MaxLength, IsOptional, IsInt, Min, IsUrl } from 'class-validator';
 
-export class CreateFoodCategoryDto {
-    @ApiProperty({
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsString, MinLength, MaxLength, IsOptional, IsInt, Min, IsBoolean, IsUrl } from 'class-validator';
+
+export class UpdateFoodCategoryDto {
+    @ApiPropertyOptional({
         example: 'Jollof Rice and Entrees',
         description: 'Category name',
     })
+    @IsOptional()
     @IsString()
-    @IsNotEmpty()
     @MinLength(3)
     @MaxLength(100)
-    name: string;
+    name?: string;
 
     @ApiPropertyOptional({
         example: 'Delicious Jollof rice served with your choice of protein and sides',
@@ -33,9 +33,16 @@ export class CreateFoodCategoryDto {
     imageUrl?: string;
 
     @ApiPropertyOptional({
+        example: true,
+        description: 'Whether category is active',
+    })
+    @IsOptional()
+    @IsBoolean()
+    isActive?: boolean;
+
+    @ApiPropertyOptional({
         example: 1,
-        description: 'Display order (lower numbers appear first)',
-        default: 0,
+        description: 'Display order',
     })
     @IsOptional()
     @IsInt()
