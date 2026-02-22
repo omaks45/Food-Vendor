@@ -1,5 +1,4 @@
 /* eslint-disable prettier/prettier */
-// src/modules/food/services/food-category.service.ts
 
 import {
     Injectable,
