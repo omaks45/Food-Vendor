@@ -61,6 +61,7 @@ export class AuthController {
   /**
    * Admin Registration
    */
+  @Public()
   @Post('admin/register')
   @ApiTags('Admin Authentication')
   @ApiOperation({ summary: 'Register a new admin user' })
@@ -86,6 +87,7 @@ export class AuthController {
   /**
    * Admin Login
    */
+  @Public()
   @Post('admin/login')
   @ApiTags('Admin Authentication')
   @ApiOperation({ summary: 'Admin login' })

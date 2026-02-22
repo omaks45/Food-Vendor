@@ -198,18 +198,28 @@ export class AuthService {
   }
 
   /**
-   * Login a regular user
+   * Login a regular user (CUSTOMER only)
+   * SECURITY: Prevents admins from logging in through customer endpoint
    */
   async login(loginDto: LoginDto) {
-    const user = await this.authenticateUser(loginDto.email, loginDto.password);
+    const user = await this.authenticateUser(
+      loginDto.email, 
+      loginDto.password, 
+      UserRole.CUSTOMER  // ENFORCES CUSTOMER ROLE
+    );
     return this.buildLoginResponse(user, 'Login successful');
   }
 
   /**
-   * Login an admin user
+   * Login an admin user (ADMIN only)
+   * SECURITY: Prevents customers from logging in through admin endpoint
    */
   async loginAdmin(adminLoginDto: AdminLoginDto) {
-    const admin = await this.authenticateUser(adminLoginDto.email, adminLoginDto.password, UserRole.ADMIN);
+    const admin = await this.authenticateUser(
+      adminLoginDto.email, 
+      adminLoginDto.password, 
+      UserRole.ADMIN  //ENFORCES ADMIN ROLE
+    );
     return this.buildLoginResponse(admin, 'Admin login successful');
   }
 
@@ -352,9 +362,13 @@ export class AuthService {
 
   /**
    * Locate + validate credentials for both user and admin login paths.
-   * Pass `requiredRole` to enforce role-based access (e.g. admin login).
+   * UPDATED: Now REQUIRES role parameter for strict enforcement
+   * 
+   * @param email - User email
+   * @param password - User password
+   * @param requiredRole - REQUIRED role (CUSTOMER or ADMIN)
    */
-  private async authenticateUser(email: string, password: string, requiredRole?: UserRole) {
+  private async authenticateUser(email: string, password: string, requiredRole: UserRole) {
     const user = await this.prisma.user.findUnique({ where: { email } });
 
     // Unified "invalid credentials" — don't leak whether the account exists
@@ -365,10 +379,16 @@ export class AuthService {
       });
     }
 
-    if (requiredRole && user.role !== requiredRole) {
+    // STRICT ROLE ENFORCEMENT - Now mandatory
+    if (user.role !== requiredRole) {
+      // Different messages based on attempted access
+      const errorMessage = requiredRole === UserRole.ADMIN
+        ? 'Access denied. Admin credentials required.'
+        : 'Access denied. Please use the customer login.';
+      
       throw new UnauthorizedException({
         code: ErrorCodes.UNAUTHORIZED,
-        message: 'Access denied. Admin credentials required.',
+        message: errorMessage,
       });
     }
 
