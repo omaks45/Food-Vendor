@@ -199,10 +199,7 @@ cp .env.example .env
 npx prisma generate
 npx prisma db push
 
-# 5. Seed food categories
-npx ts-node prisma/seed-categories.ts
-
-# 6. Start development server
+# 5. Start development server
 npm run start:dev
 ```
 
