@@ -8,7 +8,7 @@ import {
     Patch,
     Param,
     Delete,
-    //UseGuards,
+    UseGuards,
     HttpCode,
     HttpStatus,
 } from '@nestjs/common';
@@ -21,19 +21,20 @@ import {
 import { CartService } from '../services/cart.service';
 import { AddToCartDto } from '../dto/add-to-cart.dto';
 import { UpdateCartItemDto } from '../dto/update-cart-item.dto';
-//import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
+//import { Public } from '@prisma/client/runtime/library';
 
 @ApiTags('Cart')
 @Controller('cart')
-//@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class CartController {
     constructor(private readonly cartService: CartService) {}
 
     /**
-     * Add item to cart
-     */
+     * Add item to cart 
+    */
     @Post('items')
     @HttpCode(HttpStatus.CREATED)
     @ApiOperation({ summary: 'Add item to cart' })

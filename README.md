@@ -1,381 +1,1094 @@
 <div align="center">
 
-#  Authentication & Authorization System
+#  Chuks Kitchen API
 
+### Complete Food Ordering Platform - Authentication, Menu Management & Shopping Cart
+
+[![NestJS](https://img.shields.io/badge/NestJS-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)](https://nestjs.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io/)
+[![Cloudinary](https://img.shields.io/badge/Cloudinary-3448C5?style=for-the-badge&logo=cloudinary&logoColor=white)](https://cloudinary.com/)
+
+[Quick Start](#-quick-start) • [API Docs](#-api-documentation) • [Features](#-key-features) • [Architecture](#-architecture)
+
+</div>
 
 ---
 
-## Table of Contents
+##  Table of Contents
 
 - [Overview](#-overview)
-- [Features](#-features)
+- [Key Features](#-key-features)
 - [Technology Stack](#-technology-stack)
-- [Architecture](#-architecture)
-- [Database Schema](#-database-schema)
-- [Installation](#-installation)
-- [Environment Configuration](#-environment-configuration)
-- [API Endpoints](#-api-endpoints)
-  - [Customer Authentication](#1-customer-authentication)
-  - [Admin Authentication](#2-admin-authentication)
-  - [Protected Endpoints](#3-protected-endpoints-require-authentication)
-- [Authentication Flow](#-authentication-flow)
-- [Security Features](#-security-features)
-- [Testing Guide](#-testing-guide)
-- [Error Codes](#-error-codes)
+- [Architecture](#-system-architecture)
+- [Quick Start](#-quick-start)
+- [Modules](#-modules)
+  - [Authentication](#1-authentication--authorization)
+  - [Food Management](#2-food-management)
+  - [Shopping Cart](#3-shopping-cart)
+- [API Documentation](#-api-documentation)
+- [Security](#-security)
+- [Testing](#-testing)
+- [Contributing](#-contributing)
 
 ---
 
 ##  Overview
 
-A **production-ready**, **scalable**, and **secure** authentication system built with **NestJS** for the Chuks Kitchen food ordering platform. This system provides comprehensive user management, role-based access control, and advanced security features.
+**Chuks Kitchen API** is a production-ready, full-stack food ordering platform built with **NestJS**, **MongoDB**, and **Redis**. The system features comprehensive user authentication, dynamic menu management with image uploads, and an intelligent shopping cart system supporting both guest and authenticated users.
 
-### Key Highlights
+### What Makes It Special?
 
-| Feature | Status | Description |
-|---------|--------|-------------|
-|  **Authentication** |  Complete | Email/Password with JWT tokens |
-|  **Email Verification** |  Complete | 6-digit OTP with rate limiting |
-|  **Password Reset** |  Complete | Secure OTP-based flow |
-|  **Referral System** |  Complete | User-to-User & Promotional codes |
-|  **Admin Panel** |  Complete | Role-based access control |
-|  **Security** |  Production-Ready | bcrypt, Redis, rate limiting |
-|  **Mobile Ready** |  Complete | RESTful API, token refresh |
-|  **Analytics** |  Ready | Referral tracking, activity logs |
+-  **Dual Authentication** - Separate customer and admin access with role-based authorization
+-  **Dynamic Menu** - 5 food categories with special Jollof Rice customization (protein choices & extra sides)
+-  **Smart Cart** - Guest cart support with automatic merge on login
+-  **Image Management** - Cloudinary integration for optimized food images
+-  **Referral System** - Built-in user referral and promotional code support
+-  **Smart Pricing** - Automatic price calculation with protein and sides add-ons
 
 ---
 
-##  Features
+##  Key Features
 
-<details open>
-<summary><b> Core Authentication</b></summary>
-<br>
+<table>
+<tr>
+<td width="50%">
 
--  User registration with comprehensive validation
--  Email verification via 6-digit OTP (10-minute expiry)
--  Secure login with email & password
--  JWT access tokens (15 minutes expiry)
--  JWT refresh tokens (7 days expiry, Redis-stored)
--  Password reset flow with OTP
--  Token refresh mechanism
--  Logout with token invalidation
--  Automatic cleanup of unverified accounts (24h)
+###  Authentication
+-  Email/password registration
+-  6-digit OTP verification
+-  JWT access & refresh tokens
+-  Password reset flow
+-  Admin authentication (separate)
+-  Role-based access control
+-  Referral code system
 
-</details>
+</td>
+<td width="50%">
 
-<details open>
-<summary><b> Security Features</b></summary>
-<br>
+###  Food Management
+-  5 food categories
+-  CRUD operations (admin)
+-  Image upload (Cloudinary)
+-  Public menu browsing
+-  Search & filters
+-  Featured items
+-  Availability management
 
--  Password hashing with **bcrypt** (12 rounds)
--  Refresh token storage in **Redis** (hashed)
--  OTP rate limiting (3 OTP/hour, 2-minute cooldown)
--  Strong password validation (uppercase, lowercase, number, special char)
--  Email verification required before login
--  CORS protection with whitelist
--  Helmet security headers
--  Request rate limiting
--  SQL injection prevention (Prisma ORM)
+</td>
+</tr>
+<tr>
+<td width="50%">
 
-</details>
+###  Shopping Cart
+-  Guest cart support
+-  Authenticated cart
+-  Auto-merge on login
+-  Protein choices (Jollof Rice)
+-  Extra sides selection
+-  Customer messages
+-  Real-time pricing
 
-<details open>
-<summary><b> Referral System</b></summary>
-<br>
+</td>
+<td width="50%">
 
--  User-to-user referral codes (auto-generated, 12 characters)
--  Promotional referral codes (admin-created)
--  Referral tracking & analytics
--  Expiration date support
--  Usage limits for promotional codes
--  Discount configuration (percentage or fixed amount)
+###  Security
+-  Bcrypt password hashing
+-  Redis session management
+-  Rate limiting
+-  CORS protection
+-  Input validation
+-  SQL injection prevention
+-  XSS protection
 
-</details>
-
-<details open>
-<summary><b> Admin Features</b></summary>
-<br>
-
--  Admin registration with secret key protection
--  Admin-specific login endpoint
--  Role-based authorization guards
--  Admin activity logging (ready for implementation)
--  Separate admin dashboard access
-
-</details>
-
-<details>
-<summary><b> Additional Features</b></summary>
-<br>
-
--  Phone number support (optional)
-- Profile management (update name, phone)
--  Password change (authenticated)
--  OAuth ready (Google, Facebook - prepared schema)
--  Multiple address support
--  Last login tracking
-
-</details>
+</td>
+</tr>
+</table>
 
 ---
 
 ##  Technology Stack
 
-| Category | Technology | Version | Purpose |
-|----------|-----------|---------|---------|
-| **Framework** | NestJS | ^10.0.0 | Backend framework |
-| **Language** | TypeScript | ^5.1.0 | Type-safe development |
-| **Database** | MongoDB Atlas | Latest | NoSQL database |
-| **ORM** | Prisma | 6.19.2 | Database toolkit |
-| **Cache** | Redis Cloud | Latest | Session management |
-| **Authentication** | JWT | ^10.0.0 | Token-based auth |
-| **Validation** | class-validator | ^0.14.0 | DTO validation |
-| **Security** | bcrypt | ^5.1.0 | Password hashing |
-| **Email** | Nodemailer | ^6.9.0 | Email service |
-| **Documentation** | Swagger | ^7.0.0 | API docs |
-| **File Upload** | Cloudinary | ^1.41.0 | Image storage |
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| **Backend** | NestJS 10 | Framework |
+| **Language** | TypeScript 5 | Type safety |
+| **Database** | MongoDB Atlas | Data storage |
+| **ORM** | Prisma 6.19.2 | Database toolkit |
+| **Cache** | Redis Cloud | Session management |
+| **Auth** | JWT + bcrypt | Authentication |
+| **Storage** | Cloudinary | Image hosting |
+| **Email** | Nodemailer | Email service |
+| **Docs** | Swagger | API documentation |
 
 ---
 
-## Architecture
+##  System Architecture
 
 ```
-┌─────────────────┐
-│   Client App    │
-│  (Web/Mobile)   │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────────────────────────────┐
-│         NestJS API Gateway              │
-│  ┌───────────────────────────────────┐  │
-│  │   Auth Module                     │  │
-│  │   ├── Controllers                 │  │
-│  │   ├── Services                    │  │
-│  │   ├── Guards (JWT, Admin)         │  │
-│  │   └── DTOs                        │  │
-│  └───────────────────────────────────┘  │
-│  ┌───────────────────────────────────┐  │
-│  │   Notifications Module            │  │
-│  │   ├── Email Service               │  │
-│  │   └── OTP Service                 │  │
-│  └───────────────────────────────────┘  │
-└─────────────────────────────────────────┘
-         │                 │
-         ▼                 ▼
-┌─────────────┐   ┌──────────────┐
-│  MongoDB    │   │    Redis     │
-│  (Atlas)    │   │   (Cloud)    │
-│   Users     │   │  Sessions    │
-│   OTPs      │   │   Tokens     │
-└─────────────┘   └──────────────┘
+┌────────────────────────────────────────────────────────────────┐
+│                         Client Layer                            │
+│  (Web App / Mobile App / Admin Dashboard)                      │
+└───────────────────────────┬────────────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────────────┐
+│                      NestJS API Gateway                         │
+│                     (http://localhost:5000)                     │
+├────────────────────────────────────────────────────────────────┤
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐        │
+│  │     Auth     │  │     Food     │  │     Cart     │        │
+│  │    Module    │  │    Module    │  │    Module    │        │
+│  ├──────────────┤  ├──────────────┤  ├──────────────┤        │
+│  │ • Register   │  │ • Categories │  │ • Add Item   │        │
+│  │ • Login      │  │ • Food Items │  │ • Update     │        │
+│  │ • OTP        │  │ • Images     │  │ • Remove     │        │
+│  │ • Tokens     │  │ • Search     │  │ • Guest Cart │        │
+│  └──────────────┘  └──────────────┘  └──────────────┘        │
+│                                                                 │
+│  ┌──────────────┐  ┌──────────────┐                          │
+│  │    Guards    │  │    Services   │                          │
+│  ├──────────────┤  ├──────────────┤                          │
+│  │ • JWT Auth   │  │ • Email      │                          │
+│  │ • Roles      │  │ • Cloudinary │                          │
+│  │ • Throttle   │  │ • OTP        │                          │
+│  └──────────────┘  └──────────────┘                          │
+└───────────┬────────────────────┬───────────────────┬──────────┘
+            │                    │                   │
+            ▼                    ▼                   ▼
+  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+  │   MongoDB    │    │    Redis     │    │  Cloudinary  │
+  │   (Atlas)    │    │   (Cloud)    │    │    (CDN)     │
+  ├──────────────┤    ├──────────────┤    ├──────────────┤
+  │ • Users      │    │ • Sessions   │    │ • Food       │
+  │ • OTPs       │    │ • Tokens     │    │   Images     │
+  │ • Categories │    │ • Rate Limit │    │ • Auto       │
+  │ • Food Items │    │              │    │   Optimize   │
+  │ • Carts      │    │              │    │              │
+  └──────────────┘    └──────────────┘    └──────────────┘
 ```
 
 ---
 
-##  Database Schema
+##  Quick Start
+
+### Prerequisites
+
+- Node.js v18+
+- MongoDB Atlas account
+- Redis Cloud account
+- Cloudinary account
+- Gmail (for SMTP)
+
+### Installation
+
+```bash
+# 1. Clone repository
+git clone https://github.com/yourusername/chuks-kitchen-api.git
+cd chuks-kitchen-api
+
+# 2. Install dependencies
+npm install
+
+# 3. Setup environment
+cp .env.example .env
+# Edit .env with your credentials
+
+# 4. Initialize database
+npx prisma generate
+npx prisma db push
+
+# 5. Seed food categories
+npx ts-node prisma/seed-categories.ts
+
+# 6. Start development server
+npm run start:dev
+```
+
+** API Running at:** `http://localhost:5000/api/v1`
+
+** Swagger Docs:** `http://localhost:5000/api/docs`
+
+---
+
+##  Modules
+
+## 1. Authentication & Authorization
+
+Complete user authentication system with separate customer and admin access.
+
+### Features
+
+-  Email/password authentication
+-  6-digit OTP email verification
+-  Password reset with OTP
+-  Referral code system
+-  Customer & admin roles
+-  JWT access & refresh tokens
+
+### API Endpoints
 
 <details>
-<summary><b>Click to view complete database schema</b></summary>
+<summary><b>Customer Authentication</b></summary>
 
-### User Model
-```prisma
-model User {
-  id                String      @id @default(auto()) @map("_id") @db.ObjectId
-  email             String      @unique
-  phoneNumber       String?     @unique
-  password          String?
-  firstName         String
-  lastName          String
-  role              UserRole    @default(CUSTOMER)
-  isEmailVerified   Boolean     @default(false)
-  isPhoneVerified   Boolean     @default(false)
-  authProvider      AuthProvider @default(TRADITIONAL)
-  googleId          String?     @unique
-  facebookId        String?     @unique
-  profileImage      String?
-  
-  // Referral system
-  referralCode      String      @unique
-  referredBy        String?     @db.ObjectId
-  referrer          User?       @relation("Referrals", fields: [referredBy], references: [id])
-  referrals         User[]      @relation("Referrals")
-  
-  // Timestamps
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
-  lastLogin         DateTime?
-  
-  // Relations
-  addresses         Address[]
-  orders            Order[]
-  cart              Cart?
-  otpCodes          OTPCode[]
-}
+#### Register Customer
+```http
+POST /auth/register
+Content-Type: application/json
 
-enum UserRole {
-  CUSTOMER
-  ADMIN
-}
-
-enum AuthProvider {
-  TRADITIONAL
-  GOOGLE
-  FACEBOOK
+{
+  "email": "john@example.com",
+  "firstName": "John",
+  "lastName": "Doe",
+  "password": "Password123!",
+  "confirmPassword": "Password123!",
+  "phoneNumber": "+2348012345678",
+  "referralCode": "ABC123XYZ"
 }
 ```
 
-### OTP Model
-```prisma
-model OTPCode {
-  id           String      @id @default(auto()) @map("_id") @db.ObjectId
-  userId       String      @db.ObjectId
-  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  code         String
-  purpose      OTPPurpose
-  expiresAt    DateTime
-  isUsed       Boolean     @default(false)
-  createdAt    DateTime    @default(now())
-}
+#### Verify Email
+```http
+POST /auth/verify-email
+Content-Type: application/json
 
-enum OTPPurpose {
-  EMAIL_VERIFICATION
-  PASSWORD_RESET
-  PHONE_VERIFICATION
+{
+  "email": "john@example.com",
+  "code": "123456"
 }
 ```
 
-### Referral Code Model
-```prisma
-model ReferralCode {
-  id              String      @id @default(auto()) @map("_id") @db.ObjectId
-  code            String      @unique
-  userId          String?     @db.ObjectId
-  
-  discountType    DiscountType
-  discountValue   Float
-  
-  maxUses         Int?
-  currentUses     Int         @default(0)
-  
-  isActive        Boolean     @default(true)
-  expiresAt       DateTime?
-  
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+#### Login
+```http
+POST /auth/login
+Content-Type: application/json
+
+{
+  "email": "john@example.com",
+  "password": "Password123!"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "user": {
+      "id": "507f...",
+      "email": "john@example.com",
+      "role": "CUSTOMER",
+      "referralCode": "A0AEMLUZXSWW"
+    },
+    "tokens": {
+      "accessToken": "eyJhbGc...",
+      "refreshToken": "eyJhbGc..."
+    }
+  }
 }
 ```
 
 </details>
 
----
+<details>
+<summary><b>Admin Authentication</b></summary>
 
-##  Installation
+#### Register Admin
+```http
+POST /auth/admin/register
+Content-Type: application/json
 
-### Prerequisites
-
-- Node.js (v18 or higher)
-- MongoDB Atlas account
-- Redis Cloud account (or local Redis)
-- Gmail account (for SMTP) or SendGrid
-
-### Step 1: Clone the Repository
-
-```bash
-git clone https://github.com/yourusername/chuks-kitchen-api.git
-cd chuks-kitchen-api
+{
+  "email": "admin@chukskitchen.com",
+  "firstName": "Admin",
+  "lastName": "User",
+  "password": "AdminPass123!",
+  "confirmPassword": "AdminPass123!",
+  "adminSecret": "your-admin-secret"
+}
 ```
 
-### Step 2: Install Dependencies
+#### Admin Login
+```http
+POST /auth/admin/login
+Content-Type: application/json
 
-```bash
-npm install
+{
+  "email": "admin@chukskitchen.com",
+  "password": "AdminPass123!"
+}
 ```
 
-### Step 3: Environment Setup
+**Note:** Customers cannot login through admin endpoint and vice versa.
 
-Create a `.env` file in the root directory:
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` with your credentials (see [Environment Configuration](#-environment-configuration) section).
-
-### Step 4: Database Setup
-
-```bash
-
-# Prisma initialization
-npx prisma init
-
-# Generate Prisma Client
-npx prisma generate
-
-# Push schema to MongoDB
-npx prisma db push
-```
-
-### Step 5: Start the Server
-
-```bash
-# Development
-npm run start:dev
-
-# Production
-npm run build
-npm run start:prod
-```
-
-The API will be available at `http://localhost:5000/api/v1`
-
-**Swagger Documentation**: `http://localhost:5000/api/docs`
-
----
-
-##  Environment Configuration
+</details>
 
 <details>
-<summary><b>Click to view complete environment variables</b></summary>
+<summary><b>Protected Endpoints</b></summary>
+
+#### Get Profile
+```http
+GET /users/profile
+Authorization: Bearer <token>
+```
+
+#### Update Profile
+```http
+PATCH /users/profile
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "firstName": "Jonathan",
+  "phoneNumber": "+2348098765432"
+}
+```
+
+#### Change Password
+```http
+PUT /users/change-password
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "currentPassword": "Password123!",
+  "newPassword": "NewPassword456!",
+  "confirmPassword": "NewPassword456!"
+}
+```
+
+</details>
+
+### Security Features
+
+| Feature | Implementation |
+|---------|---------------|
+| Password Hashing | bcrypt (12 rounds) |
+| Token Storage | Redis (hashed) |
+| OTP Expiry | 10 minutes |
+| Rate Limiting | 3 OTP/hour, 2min cooldown |
+| Token Expiry | Access: 15min, Refresh: 7 days |
+
+---
+
+## 2. Food Management
+
+Dynamic menu system with 5 categories and Cloudinary image storage.
+
+### The 5 Food Categories
+
+1. ** Jollof Rice and Entrees** (Special Features)
+   - Protein choices: Fried Chicken (default), Grilled Fish (+₦500), Beef (+₦700)
+   - Extra sides: Fried Plantain (₦300), Coleslaw (₦200), Extra Pepper Sauce (₦100)
+   - Customer message box enabled
+
+2. ** Swallow and Soups**
+   - Eba, Fufu, Pounded Yam
+   - Egusi, Ogbono, Efo Riro
+
+3. ** Grills and Sides**
+   - Suya, Peppered Chicken
+   - Grilled Fish, Asun
+
+4. ** Beverages**
+   - Chapman, Zobo
+   - Fresh Juices
+
+5. ** Desserts**
+   - Chin Chin, Puff Puff
+   - Plantain Cake
+
+### API Endpoints
+
+<details>
+<summary><b>Food Categories (Public + Admin)</b></summary>
+
+#### Get All Categories (Public)
+```http
+GET /food/categories
+GET /food/categories?activeOnly=true
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "categories": [
+      {
+        "id": "64f...",
+        "name": "Jollof Rice and Entrees",
+        "slug": "jollof-rice-and-entrees",
+        "description": "Delicious Nigerian Jollof rice...",
+        "isActive": true,
+        "displayOrder": 1,
+        "_count": { "foodItems": 5 }
+      }
+    ],
+    "total": 5
+  }
+}
+```
+
+#### Get Single Category (Public)
+```http
+GET /food/categories/:id
+GET /food/categories/jollof-rice-and-entrees
+```
+
+#### Create Category (Admin Only)
+```http
+POST /food/categories
+Authorization: Bearer <admin-token>
+Content-Type: application/json
+
+{
+  "name": "Jollof Rice and Entrees",
+  "description": "Delicious Nigerian Jollof rice...",
+  "displayOrder": 1
+}
+```
+
+#### Update Category (Admin Only)
+```http
+PATCH /food/categories/:id
+Authorization: Bearer <admin-token>
+Content-Type: application/json
+
+{
+  "name": "Updated Name",
+  "isActive": false
+}
+```
+
+#### Delete Category (Admin Only)
+```http
+DELETE /food/categories/:id
+Authorization: Bearer <admin-token>
+```
+
+</details>
+
+<details>
+<summary><b>Food Items (Public + Admin)</b></summary>
+
+#### Get All Food Items (Public)
+```http
+GET /food/items
+GET /food/items?categoryId=64f...
+GET /food/items?available=true
+GET /food/items?featured=true
+GET /food/items?search=jollof
+```
+
+#### Get Items by Category (Public)
+```http
+GET /food/items/category/jollof-rice-and-entrees
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "category": {
+      "name": "Jollof Rice and Entrees",
+      "description": "..."
+    },
+    "foodItems": [
+      {
+        "id": "64f...",
+        "name": "Jollof Rice Special",
+        "slug": "jollof-rice-special",
+        "description": "Delicious Nigerian Jollof rice...",
+        "imageUrl": "https://res.cloudinary.com/...",
+        "basePrice": 2500,
+        "allowProteinChoice": true,
+        "allowExtraSides": true,
+        "isAvailable": true,
+        "isFeatured": true
+      }
+    ],
+    "total": 1
+  }
+}
+```
+
+#### Create Food Item (Admin Only)
+```http
+POST /food/items
+Authorization: Bearer <admin-token>
+Content-Type: multipart/form-data
+
+Fields:
+- categoryId: "64f..."
+- name: "Jollof Rice Special"
+- description: "Delicious Nigerian Jollof rice..."
+- basePrice: 2500
+- allowProteinChoice: true
+- allowExtraSides: true
+- isAvailable: true
+- isFeatured: false
+- image: <file> (required, max 5MB)
+```
+
+**Image Upload:**
+- Formats: JPG, PNG
+- Max size: 5MB
+- Auto-optimization by Cloudinary
+- Max dimensions: 800x800
+- Auto format conversion (WebP)
+
+#### Update Food Item (Admin Only)
+```http
+PATCH /food/items/:id
+Authorization: Bearer <admin-token>
+Content-Type: multipart/form-data
+
+Fields:
+- name: "Updated Name"
+- basePrice: 3000
+- image: <file> (optional, replaces old image)
+```
+
+#### Toggle Availability (Admin Only)
+```http
+PATCH /food/items/:id/toggle-availability
+Authorization: Bearer <admin-token>
+```
+
+#### Toggle Featured (Admin Only)
+```http
+PATCH /food/items/:id/toggle-featured
+Authorization: Bearer <admin-token>
+```
+
+</details>
+
+### Image Management
+
+- **Storage**: Cloudinary CDN
+- **Optimization**: Automatic
+- **Formats**: Auto (WebP for supported browsers)
+- **Dimensions**: Max 800x800
+- **Cleanup**: Old images deleted on update
+
+---
+
+## 3. Shopping Cart
+
+Intelligent cart system supporting both guest and authenticated users with automatic merge on login.
+
+### Features
+
+-  Guest cart (no login required)
+-  Authenticated cart (user-specific)
+-  Auto-merge cart on login
+-  Protein selection (Jollof Rice)
+-  Extra sides selection
+-  Customer messages
+-  Real-time pricing
+-  Smart duplicate handling
+
+### Pricing System
+
+**Protein Options (Additional Cost):**
+- Fried Chicken: ₦0 (default)
+- Grilled Fish: +₦500
+- Beef: +₦700
+
+**Extra Sides:**
+- Fried Plantain: ₦300
+- Coleslaw: ₦200
+- Extra Pepper Sauce: ₦100
+
+**Calculation:**
+```
+Unit Price = Base Price + Protein Price + Sum(Extra Sides)
+Line Total = Unit Price × Quantity
+Cart Total = Sum(All Line Totals)
+```
+
+### API Endpoints
+
+<details>
+<summary><b>Cart Operations (Public - Works for Guest & Auth)</b></summary>
+
+#### Add to Cart
+
+**For Guest Users:**
+```http
+POST /cart/items
+Content-Type: application/json
+
+{
+  "foodItemId": "64f...",
+  "quantity": 2,
+  "selectedProtein": "GRILLED_FISH",
+  "selectedExtraSides": ["FRIED_PLANTAIN", "COLESLAW"],
+  "customerMessage": "Extra spicy please!",
+  "guestId": "guest_1708515600000"
+}
+```
+
+**For Authenticated Users:**
+```http
+POST /cart/items
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "foodItemId": "64f...",
+  "quantity": 2,
+  "selectedProtein": "GRILLED_FISH",
+  "selectedExtraSides": ["FRIED_PLANTAIN", "COLESLAW"],
+  "customerMessage": "Extra spicy please!"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "64f...",
+    "items": [
+      {
+        "id": "64f...",
+        "foodItem": {
+          "name": "Jollof Rice Special",
+          "imageUrl": "https://...",
+          "basePrice": 2500
+        },
+        "quantity": 2,
+        "unitPrice": 3200,
+        "totalPrice": 6400,
+        "selectedProtein": "GRILLED_FISH",
+        "selectedExtraSides": ["FRIED_PLANTAIN", "COLESLAW"]
+      }
+    ],
+    "summary": {
+      "itemCount": 1,
+      "totalQuantity": 2,
+      "subtotal": 6400
+    }
+  }
+}
+```
+
+**Price Breakdown:**
+```
+Base Price:        ₦2,500
++ Grilled Fish:    ₦500
++ Fried Plantain:  ₦300
++ Coleslaw:        ₦200
+─────────────────────────
+Unit Price:        ₦3,200
+× Quantity:        2
+─────────────────────────
+Total:             ₦6,400
+```
+
+#### Get Cart
+
+**Guest:**
+```http
+GET /cart?guestId=guest_1708515600000
+```
+
+**Authenticated:**
+```http
+GET /cart
+Authorization: Bearer <token>
+```
+
+#### Get Cart Count (for badge)
+
+**Guest:**
+```http
+GET /cart/count?guestId=guest_1708515600000
+```
+
+**Authenticated:**
+```http
+GET /cart/count
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "itemCount": 3,
+    "totalQuantity": 7
+  }
+}
+```
+
+#### Update Cart Item
+
+**Guest:**
+```http
+PATCH /cart/items/:id
+Content-Type: application/json
+
+{
+  "quantity": 3,
+  "selectedProtein": "BEEF",
+  "guestId": "guest_1708515600000"
+}
+```
+
+**Authenticated:**
+```http
+PATCH /cart/items/:id
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "quantity": 3,
+  "selectedProtein": "BEEF"
+}
+```
+
+#### Remove Item
+
+**Guest:**
+```http
+DELETE /cart/items/:id?guestId=guest_1708515600000
+```
+
+**Authenticated:**
+```http
+DELETE /cart/items/:id
+Authorization: Bearer <token>
+```
+
+#### Clear Cart
+
+**Guest:**
+```http
+DELETE /cart?guestId=guest_1708515600000
+```
+
+**Authenticated:**
+```http
+DELETE /cart
+Authorization: Bearer <token>
+```
+
+</details>
+
+<details>
+<summary><b>Cart Merge (After Login)</b></summary>
+
+#### Merge Guest Cart to User Cart
+
+```http
+POST /cart/merge
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "guestId": "guest_1708515600000"
+}
+```
+
+**What Happens:**
+1. All guest cart items copied to user cart
+2. Duplicate items merged (quantities added)
+3. Guest cart deleted
+4. Returns merged cart
+
+**Use Case:**
+```
+1. User browses as guest and adds items
+2. User proceeds to checkout
+3. User logs in
+4. Call /cart/merge with guestId
+5. Guest cart automatically merged
+6. User cart now has all items
+```
+
+</details>
+
+### Guest Cart Implementation
+
+**Frontend Example:**
+```javascript
+// Generate guest ID on app load
+let guestId = localStorage.getItem('guestId');
+if (!guestId) {
+  guestId = `guest_${Date.now()}`;
+  localStorage.setItem('guestId', guestId);
+}
+
+// Add to cart (guest)
+const addToCart = async (foodItemId, quantity) => {
+  const response = await fetch('/api/v1/cart/items', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      foodItemId,
+      quantity,
+      guestId,
+    }),
+  });
+  return response.json();
+};
+
+// After login, merge cart
+const mergeCart = async (token) => {
+  const guestId = localStorage.getItem('guestId');
+  if (guestId) {
+    await fetch('/api/v1/cart/merge', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ guestId }),
+    });
+    localStorage.removeItem('guestId');
+  }
+};
+```
+
+---
+
+##  API Documentation
+
+### Base URL
+```
+Development: http://localhost:5000/api/v1
+```
+
+### Interactive Documentation
+```
+Swagger UI: http://localhost:5000/api/docs
+```
+
+### Authentication Headers
+
+**JWT Token (Authenticated Users):**
+```http
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**Guest ID (Guest Users):**
+```
+In body: { "guestId": "guest_1708515600000" }
+In query: ?guestId=guest_1708515600000
+```
+
+### Response Format
+
+**Success:**
+```json
+{
+  "success": true,
+  "message": "Operation successful",
+  "data": { ... }
+}
+```
+
+**Error:**
+```json
+{
+  "success": false,
+  "message": "Error message",
+  "error": {
+    "code": "ERROR_CODE",
+    "statusCode": 400
+  }
+}
+```
+
+### Status Codes
+
+| Code | Meaning |
+|------|---------|
+| 200 | Success |
+| 201 | Created |
+| 400 | Bad Request |
+| 401 | Unauthorized |
+| 403 | Forbidden |
+| 404 | Not Found |
+| 409 | Conflict |
+| 429 | Too Many Requests |
+| 500 | Server Error |
+
+---
+
+##  Security
+
+### Authentication & Authorization
+
+- **Password Hashing**: bcrypt with 12 rounds
+- **JWT Tokens**: Separate access & refresh tokens
+- **Session Storage**: Redis with automatic expiration
+- **Role-Based Access**: Customer and Admin roles
+- **Rate Limiting**: 3 OTP requests per hour per user
+
+### API Security
+
+```typescript
+// CORS Protection
+app.enableCors({
+  origin: process.env.ALLOWED_ORIGINS.split(','),
+  credentials: true,
+});
+
+// Security Headers
+app.use(helmet());
+
+// Rate Limiting
+@Throttle(10, 60) // 10 requests per 60 seconds
+
+// Input Validation
+@Body() dto: RegisterDto // class-validator
+```
+
+### Data Protection
+
+- **OTP**: 6 digits, 10-minute expiry, single-use
+- **Passwords**: Never logged, stored as hash only
+- **Tokens**: Refresh tokens hashed in Redis
+- **File Uploads**: Type and size validation
+- **SQL Injection**: Prevented by Prisma ORM
+
+### Best Practices
+
+ Always use HTTPS in production  
+ Rotate JWT secrets regularly  
+ Keep dependencies updated  
+ Use environment variables for secrets  
+ Enable 2FA for admin accounts  
+ Monitor rate limit violations  
+ Regular security audits  
+
+---
+
+##  Testing
+
+### Using Postman
+
+1. **Import Collection**
+```bash
+curl http://localhost:5000/api-json > api-collection.json
+```
+
+2. **Setup Environment**
+```json
+{
+  "base_url": "http://localhost:5000/api/v1",
+  "access_token": "",
+  "refresh_token": "",
+  "admin_token": "",
+  "guest_id": ""
+}
+```
+
+3. **Test Workflows**
+
+**Customer Registration Flow:**
+```
+1. POST /auth/register
+2. Check email for OTP
+3. POST /auth/verify-email
+4. Save tokens
+5. GET /users/profile (with token)
+```
+
+**Admin Food Management:**
+```
+1. POST /auth/admin/login (save admin token)
+2. POST /food/categories (create category)
+3. POST /food/items (upload food with image)
+4. PATCH /food/items/:id/toggle-availability
+5. Public GET /food/items (verify visibility)
+```
+
+### Using cURL
+
+**Register User:**
+```bash
+curl -X POST http://localhost:5000/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "firstName": "Test",
+    "lastName": "User",
+    "password": "Test123!",
+    "confirmPassword": "Test123!"
+  }'
+```
+
+**Add to Cart (Guest):**
+```bash
+curl -X POST http://localhost:5000/api/v1/cart/items \
+  -H "Content-Type: application/json" \
+  -d '{
+    "foodItemId": "64f1a2b3c4d5e6f7g8h9i0j1",
+    "quantity": 2,
+    "guestId": "guest_'$(date +%s)'"
+  }'
+```
+
+**Get Food Items:**
+```bash
+curl http://localhost:5000/api/v1/food/items?available=true
+```
+
+---
+
+##  Environment Variables
+
+<details>
+<summary><b>Complete .env Configuration</b></summary>
 
 ```env
 # ============================================================================
-# SERVER CONFIGURATION
+# SERVER
 # ============================================================================
 NODE_ENV=development
 PORT=5000
+API_PREFIX=api/v1
 
 # ============================================================================
 # DATABASE
 # ============================================================================
-DATABASE_URL="mongodb+srv://username:password@cluster.mongodb.net/database?retryWrites=true&w=majority"
+DATABASE_URL="mongodb+srv://user:pass@cluster.mongodb.net/db?retryWrites=true"
 
 # ============================================================================
-# JWT CONFIGURATION
+# JWT
 # ============================================================================
-JWT_SECRET="your-super-secret-jwt-key-change-in-production"
+JWT_SECRET="your-super-secret-jwt-key"
 JWT_EXPIRATION=15m
-JWT_REFRESH_SECRET="your-super-secret-refresh-key-different-from-jwt"
+JWT_REFRESH_SECRET="your-refresh-secret-different-from-jwt"
 JWT_REFRESH_EXPIRATION=7d
 
 # ============================================================================
-# REDIS CONFIGURATION
+# REDIS
 # ============================================================================
 REDIS_URL=redis://default:password@host:port
 
 # ============================================================================
-# EMAIL SERVICE (Gmail SMTP)
+# EMAIL (Gmail SMTP)
 # ============================================================================
 EMAIL_SERVICE=gmail
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_SECURE=false
 EMAIL_USER=your-email@gmail.com
-EMAIL_PASSWORD=your-app-password-no-spaces
+EMAIL_PASSWORD=yourapppasswordnospaces
 EMAIL_FROM=your-email@gmail.com
 EMAIL_FROM_NAME="Chuks Kitchen"
 
 # ============================================================================
-# CLOUDINARY (Image Storage)
+# CLOUDINARY
 # ============================================================================
 CLOUDINARY_CLOUD_NAME=your-cloud-name
 CLOUDINARY_API_KEY=your-api-key
@@ -383,747 +1096,58 @@ CLOUDINARY_API_SECRET=your-api-secret
 CLOUDINARY_FOLDER=chuks-kitchen
 
 # ============================================================================
-# FRONTEND CONFIGURATION
+# ADMIN
 # ============================================================================
+ADMIN_SECRET=your-secure-admin-secret-2026
 
+# ============================================================================
+# FRONTEND
+# ============================================================================
+FRONTEND_URL=http://localhost:3000
 ALLOWED_ORIGINS=http://localhost:5000,http://localhost:5001
-
-# ============================================================================
-# ADMIN CONFIGURATION
-# ============================================================================
-ADMIN_SECRET=your-secure-admin-secret-key-2026
-```
-
-###  Gmail SMTP Setup
-
-1. **Enable 2-Factor Authentication** on your Gmail account
-2. **Generate App Password**: 
-   - Google Account → Security → App Passwords
-3. **Copy the 16-character password** (remove all spaces!)
-4. **Add to `.env`** as `EMAIL_PASSWORD`
-
->  **Important**: Remove ALL spaces from the Gmail app password!
-> 
->  Wrong: `"ztkq rxae ozxk bxkz"`  
->  Correct: `ztkqrxaeozxkbxkz`
-
-</details>
-
----
-
-##  API Endpoints
-
-### Base URL
-```
-http://localhost:5000/api/v1
-```
-
-### 1. Customer Authentication
-
-<details>
-<summary><b>POST /auth/register</b> - Register new customer</summary>
-
-#### Request Body
-```json
-{
-  "email": "john.doe@example.com",
-  "phoneNumber": "+2348012345678",
-  "firstName": "John",
-  "lastName": "Doe",
-  "password": "Password123!",
-  "confirmPassword": "Password123!",
-  "referralCode": "ABC123XYZ"
-}
-```
-
-#### Success Response (201)
-```json
-{
-  "success": true,
-  "message": "Registration successful. Please verify your email.",
-  "data": {
-    "email": "john.doe@example.com",
-    "requiresVerification": true
-  }
-}
-```
-
-#### Validation Rules
--  Email: Valid email format
--  Phone: Optional, E.164 format (+2348012345678)
--  Password: Min 8 chars, uppercase, lowercase, number, special char
--  ConfirmPassword: Must match password
--  First/Last Name: 2-50 characters
-
-</details>
-
-<details>
-<summary><b>POST /auth/verify-email</b> - Verify email with OTP</summary>
-
-#### Request Body
-```json
-{
-  "email": "john.doe@example.com",
-  "code": "123456"
-}
-```
-
-#### Success Response (200)
-```json
-{
-  "success": true,
-  "message": "Email verified successfully",
-  "data": {
-    "user": {
-      "id": "507f1f77bcf86cd799439011",
-      "email": "john.doe@example.com",
-      "firstName": "John",
-      "lastName": "Doe",
-      "role": "CUSTOMER",
-      "isEmailVerified": true,
-      "referralCode": "A0AEMLUZXSWW"
-    },
-    "tokens": {
-      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-      "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-    }
-  }
-}
-```
-
-</details>
-
-<details>
-<summary><b>POST /auth/resend-otp</b> - Resend OTP code</summary>
-
-#### Request Body
-```json
-{
-  "email": "john.doe@example.com"
-}
-```
-
-#### Success Response (200)
-```json
-{
-  "success": true,
-  "message": "OTP sent successfully",
-  "data": {
-    "email": "john.doe@example.com"
-  }
-}
-```
-
-**Rate Limiting:**
-- Max 3 OTP requests per hour
-- 2-minute cooldown between requests
-
-</details>
-
-<details>
-<summary><b>POST /auth/login</b> - Customer login</summary>
-
-#### Request Body
-```json
-{
-  "email": "john.doe@example.com",
-  "password": "Password123!"
-}
-```
-
-#### Success Response (200)
-```json
-{
-  "success": true,
-  "message": "Login successful",
-  "data": {
-    "user": {
-      "id": "507f1f77bcf86cd799439011",
-      "email": "john.doe@example.com",
-      "firstName": "John",
-      "lastName": "Doe",
-      "role": "CUSTOMER",
-      "isEmailVerified": true,
-      "referralCode": "A0AEMLUZXSWW",
-      "lastLogin": "2026-02-21T10:30:00Z"
-    },
-    "tokens": {
-      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-      "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-    }
-  }
-}
-```
-
-</details>
-
-<details>
-<summary><b>POST /auth/forgot-password</b> - Request password reset</summary>
-
-#### Request Body
-```json
-{
-  "email": "john.doe@example.com"
-}
-```
-
-#### Success Response (200)
-```json
-{
-  "success": true,
-  "message": "If the email exists, a reset code has been sent",
-  "data": null
-}
-```
-
->  **Security Note**: Response doesn't reveal if email exists
-
-</details>
-
-<details>
-<summary><b>POST /auth/reset-password</b> - Reset password with OTP</summary>
-
-#### Request Body
-```json
-{
-  "email": "john.doe@example.com",
-  "code": "123456",
-  "newPassword": "NewPassword123!"
-}
-```
-
-#### Success Response (200)
-```json
-{
-  "success": true,
-  "message": "Password reset successfully",
-  "data": null
-}
-```
-
-</details>
-
-<details>
-<summary><b>POST /auth/refresh</b> - Refresh access token</summary>
-
-#### Request Body
-```json
-{
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
-
-#### Success Response (200)
-```json
-{
-  "success": true,
-  "message": "Token refreshed successfully",
-  "data": {
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-  }
-}
-```
-
-</details>
-
-<details>
-<summary><b>POST /auth/logout</b> - Logout user</summary>
-
-#### Headers
-```
-Authorization: Bearer <accessToken>
-```
-
-#### Success Response (200)
-```json
-{
-  "success": true,
-  "message": "Logged out successfully",
-  "data": null
-}
 ```
 
 </details>
 
 ---
 
-### 2. Admin Authentication
+### Coding Standards
 
-<details>
-<summary><b>POST /auth/admin/register</b> - Register admin user</summary>
-
-#### Request Body
-```json
-{
-  "email": "admin@chukskitchen.com",
-  "firstName": "Admin",
-  "lastName": "User",
-  "password": "AdminPassword123!",
-  "confirmPassword": "AdminPassword123!",
-  "adminSecret": "your-admin-secret-key"
-}
-```
-
-#### Success Response (201)
-```json
-{
-  "success": true,
-  "message": "Admin registration successful. Please verify your email.",
-  "data": {
-    "email": "admin@chukskitchen.com",
-    "role": "ADMIN",
-    "requiresVerification": true
-  }
-}
-```
-
->  **Required**: `ADMIN_SECRET` environment variable
-
-</details>
-
-<details>
-<summary><b>POST /auth/admin/login</b> - Admin login</summary>
-
-#### Request Body
-```json
-{
-  "email": "admin@chukskitchen.com",
-  "password": "AdminPassword123!"
-}
-```
-
-#### Success Response (200)
-```json
-{
-  "success": true,
-  "message": "Admin login successful",
-  "data": {
-    "user": {
-      "id": "507f1f77bcf86cd799439011",
-      "email": "admin@chukskitchen.com",
-      "firstName": "Admin",
-      "lastName": "User",
-      "role": "ADMIN",
-      "isEmailVerified": true
-    },
-    "tokens": {
-      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-      "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-    }
-  }
-}
-```
-
->  **Security**: Customers cannot use this endpoint
-
-</details>
+- Follow NestJS best practices
+- Use TypeScript strict mode
+- Update documentation
+- Follow conventional commits
 
 ---
 
-### 3. Protected Endpoints (Require Authentication)
-
-All endpoints below require the `Authorization` header:
-```
-Authorization: Bearer <accessToken>
-```
-
-<details>
-<summary><b>GET /users/profile</b> - Get current user profile</summary>
-
-#### Success Response (200)
-```json
-{
-  "success": true,
-  "message": "Profile retrieved successfully",
-  "data": {
-    "id": "507f1f77bcf86cd799439011",
-    "email": "john.doe@example.com",
-    "phoneNumber": "+2348012345678",
-    "firstName": "John",
-    "lastName": "Doe",
-    "role": "CUSTOMER",
-    "isEmailVerified": true,
-    "isPhoneVerified": false,
-    "referralCode": "A0AEMLUZXSWW",
-    "profileImage": null,
-    "createdAt": "2026-02-20T10:00:00Z",
-    "lastLogin": "2026-02-21T10:30:00Z"
-  }
-}
-```
-
-</details>
-
-<details>
-<summary><b>PATCH /users/profile</b> - Update user profile</summary>
-
-#### Request Body
-```json
-{
-  "firstName": "Jonathan",
-  "lastName": "Doe",
-  "phoneNumber": "+2348098765432"
-}
-```
-
-#### Success Response (200)
-```json
-{
-  "success": true,
-  "message": "Profile updated successfully",
-  "data": {
-    "id": "507f1f77bcf86cd799439011",
-    "email": "john.doe@example.com",
-    "firstName": "Jonathan",
-    "lastName": "Doe",
-    "phoneNumber": "+2348098765432"
-  }
-}
-```
-
-</details>
-
-<details>
-<summary><b>PUT /users/change-password</b> - Change password (authenticated)</summary>
-
-#### Request Body
-```json
-{
-  "currentPassword": "Password123!",
-  "newPassword": "NewSecurePass456!",
-  "confirmPassword": "NewSecurePass456!"
-}
-```
-
-#### Success Response (200)
-```json
-{
-  "success": true,
-  "message": "Password changed successfully",
-  "data": null
-}
-```
-
-</details>
-
----
-
-##  Authentication Flow
-
-### Registration & Verification Flow
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant API
-    participant DB
-    participant Email
-
-    User->>API: POST /auth/register
-    API->>DB: Check if user exists
-    DB-->>API: No user found
-    API->>DB: Create unverified user
-    API->>DB: Generate 6-digit OTP
-    API->>Email: Send OTP to user email
-    Email-->>User: OTP: 123456
-    API-->>User: 201 Registration successful
-    
-    User->>API: POST /auth/verify-email (OTP)
-    API->>DB: Verify OTP
-    DB-->>API: OTP valid
-    API->>DB: Mark email as verified
-    API->>API: Generate JWT tokens
-    API-->>User: 200 Tokens + User data
-```
-
-### Login Flow
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant API
-    participant DB
-    participant Redis
-
-    User->>API: POST /auth/login
-    API->>DB: Find user by email
-    DB-->>API: User found
-    API->>API: Verify password (bcrypt)
-    API->>API: Check email verified
-    API->>API: Generate JWT tokens
-    API->>Redis: Store refresh token hash
-    API->>DB: Update lastLogin
-    API-->>User: 200 Tokens + User data
-```
-
-### Token Refresh Flow
-
-```mermaid
-sequenceDiagram
-    participant Client
-    participant API
-    participant Redis
-
-    Client->>API: Request with expired token
-    API-->>Client: 401 Unauthorized
-    Client->>API: POST /auth/refresh (refresh token)
-    API->>API: Verify refresh token
-    API->>Redis: Check token hash
-    Redis-->>API: Token hash valid
-    API->>API: Generate new token pair
-    API->>Redis: Store new refresh token
-    API-->>Client: 200 New tokens
-    Client->>API: Retry request with new token
-```
-
-### Password Reset Flow
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant API
-    participant DB
-    participant Email
-    participant Redis
-
-    User->>API: POST /auth/forgot-password
-    API->>DB: Find user
-    API->>DB: Generate OTP
-    API->>Email: Send reset OTP
-    Email-->>User: OTP: 654321
-    API-->>User: 200 If email exists...
-    
-    User->>API: POST /auth/reset-password (OTP + new password)
-    API->>DB: Verify OTP
-    API->>DB: Hash new password
-    API->>DB: Update password
-    API->>Redis: Invalidate all refresh tokens
-    API-->>User: 200 Password reset successful
-```
-
----
-
-##  Security Features
-
-### Password Security
-
-| Feature | Implementation | Details |
-|---------|---------------|---------|
-| **Hashing Algorithm** | bcrypt | 12 rounds (2^12 iterations) |
-| **Minimum Length** | 8 characters | Enforced at DTO level |
-| **Complexity** | Multi-requirement | Uppercase, lowercase, number, special char |
-| **Storage** | Hashed only | Plain text never stored |
-| **Salt** | Random per password | Built into bcrypt |
-
-### Token Security
-
-**Access Token:**
-```typescript
-{
-  sub: userId,
-  email: "user@example.com",
-  role: "CUSTOMER",
-  type: "access",
-  iat: 1708515600,
-  exp: 1708516500  // 15 minutes
-}
-```
-
-**Refresh Token:**
-```typescript
-{
-  sub: userId,
-  email: "user@example.com",
-  role: "CUSTOMER",
-  type: "refresh",
-  iat: 1708515600,
-  exp: 1709120400  // 7 days
-}
-```
-
-**Security Measures:**
--  Signed with different secrets (JWT_SECRET vs JWT_REFRESH_SECRET)
--  Refresh token stored as hash in Redis
--  Token rotation on refresh (new tokens issued)
--  Single-use refresh tokens
--  All tokens invalidated on password change
--  Logout invalidates all user tokens
-
-### OTP Security
-
-| Feature | Value | Description |
-|---------|-------|-------------|
-| **Length** | 6 digits | Random number generation |
-| **Expiration** | 10 minutes | Automatic cleanup |
-| **Rate Limit** | 3 per hour | Per user, per purpose |
-| **Cooldown** | 2 minutes | Between requests |
-| **Single Use** | Yes | Marked as used after verification |
-| **Purpose Isolation** | Yes | Separate OTPs for email, password, phone |
-
-### Session Management
-
-- **Storage**: Redis in-memory database
-- **Token Hash**: SHA-256 hash of refresh token
-- **TTL**: Automatic expiration (7 days)
-- **Invalidation**: On logout, password change, or refresh
-- **Concurrent Sessions**: Supported (multiple devices)
-
-### API Security
-
-```typescript
-// Helmet - Security headers
-app.use(helmet());
-
-// CORS - Whitelist origins
-app.enableCors({
-  origin: process.env.ALLOWED_ORIGINS.split(','),
-  credentials: true,
-});
-
-// Rate Limiting
-@UseGuards(ThrottlerGuard)
-@Throttle(10, 60) // 10 requests per 60 seconds
-
-// Input Validation
-@Body() dto: RegisterDto // class-validator
-
-// Prisma - SQL Injection Prevention
-prisma.user.findUnique({ where: { email } })
-```
-
----
-
-
-### Using Postman
-
-#### 1. Import API Collection
-
-```bash
-# Export Swagger JSON
-curl http://localhost:5000/api-json > api-collection.json
-
-# Import into Postman
-File → Import → api-collection.json
-```
-
-#### 2. Setup Environment Variables
-
-Create a Postman environment with:
-
-```json
-{
-  "base_url": "http://localhost:5000/api/v1",
-  "access_token": "",
-  "refresh_token": ""
-}
-```
-
-#### 3. Test Registration Flow
-
-```javascript
-// 1. Register
-POST {{base_url}}/auth/register
-Body: {
-  "email": "test@example.com",
-  "firstName": "Test",
-  "lastName": "User",
-  "password": "Test123!",
-  "confirmPassword": "Test123!"
-}
-
-// 2. Check email for OTP 
-
-// 3. Verify Email
-POST {{base_url}}/auth/verify-email
-Body: {
-  "email": "test@example.com",
-  "code": "123456"
-}
-
-// 4. Save tokens in Tests tab:
-pm.environment.set("access_token", pm.response.json().data.tokens.accessToken);
-pm.environment.set("refresh_token", pm.response.json().data.tokens.refreshToken);
-```
-
-#### 4. Test Protected Routes
-
-```javascript
-GET {{base_url}}/users/profile
-Headers: {
-  "Authorization": "Bearer {{access_token}}"
-}
-```
-
-
-
-### Admin Testing
-
-#### 1. Set Admin Secret
-
-```bash
-# Add to .env
-ADMIN_SECRET=your-secure-admin-secret-key-2026
-```
-
-#### 2. Register Admin
-
-```bash
-curl -X POST http://localhost:5000/api/v1/auth/admin/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "admin@test.com",
-    "firstName": "Admin",
-    "lastName": "User",
-    "password": "Admin123!",
-    "confirmPassword": "Admin123!",
-    "adminSecret": "your-secure-admin-secret-key-2026"
-  }'
-```
-
-#### 3. Verify Admin Email
-(Same as customer verification)
-
-#### 4. Admin Login
-
-```bash
-curl -X POST http://localhost:5000/api/v1/auth/admin/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "admin@test.com",
-    "password": "Admin123!"
-  }'
-```
-
----
-
-##  Error Codes
-
-| Code | HTTP | Message | Description |
-|------|------|---------|-------------|
-| `EMAIL_ALREADY_EXISTS` | 409 | User with this email already exists | Email is registered and verified |
-| `EMAIL_NOT_VERIFIED` | 400 | Please verify your email | User exists but email not verified |
-| `INVALID_CREDENTIALS` | 401 | Invalid email or password | Wrong login credentials |
-| `USER_NOT_FOUND` | 404 | User not found | Email doesn't exist |
-| `INVALID_OTP` | 401 | Invalid or expired OTP | Wrong or expired verification code |
-| `TOO_MANY_OTP_REQUESTS` | 429 | Too many OTP requests | Rate limit exceeded |
-| `INVALID_REFERRAL_CODE` | 400 | Invalid or expired referral code | Referral code invalid |
-| `INVALID_TOKEN` | 401 | Invalid or expired token | JWT verification failed |
-| `TOKEN_EXPIRED` | 401 | Token has expired | Access token expired, use refresh |
-| `UNAUTHORIZED` | 401 | Unauthorized access | Missing or invalid token |
-| `FORBIDDEN` | 403 | Insufficient permissions | User lacks required role |
-| `SERVER_ERROR` | 500 | Internal server error | Unexpected server error |
-
-
-```
-
----
-
-## Performance Considerations
-
-## License
+##  License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
+
+## Support
+
+- **Documentation**: [Full API Docs](http://localhost:5000/api/docs)
+- **Issues**: [GitHub Issues](https://github.com/yourusername/chuks-kitchen-api/issues)
+- **Email**: support@chukskitchen.com
+
+---
+
+<div align="center">
+
+##  Quick Links
+
+[![API Docs](https://img.shields.io/badge/API-Documentation-blue?style=for-the-badge)](http://localhost:5000/api/docs)
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-black?style=for-the-badge&logo=github)](https://github.com/yourusername/chuks-kitchen-api)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+
+---
+
+**Built with ❤️ for Chuks Kitchen**
+
+Made with [NestJS](https://nestjs.com/) • Powered by [MongoDB](https://www.mongodb.com/) • Secured by [Redis](https://redis.io/)
+
+**[⬆ Back to Top](#-chuks-kitchen-api)**
+
 </div>

@@ -38,6 +38,7 @@ export const ErrorCodes = {
     CART_ITEM_NOT_FOUND: 'CART_1401',
     CART_EMPTY: 'CART_1402',
     INVALID_QUANTITY: 'CART_1403',
+    RESOURCE_UNAVAILABLE: 'CART_1404',
 
     // Order Errors (1500-1599)
     ORDER_NOT_FOUND: 'ORDER_1500',
