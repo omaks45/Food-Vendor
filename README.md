@@ -185,8 +185,8 @@
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/yourusername/chuks-kitchen-api.git
-cd chuks-kitchen-api
+git clone https://github.com/omaks45/Food-Vendor.git
+cd Food-Vendor
 
 # 2. Install dependencies
 npm install
