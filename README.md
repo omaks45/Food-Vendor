@@ -108,7 +108,7 @@
 
 ---
 
-## 🛠 Technology Stack
+##  Technology Stack
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
@@ -186,7 +186,7 @@
 ```bash
 # 1. Clone repository
 git clone https://github.com/omaks45/Food-Vendor.git
-cd chuks-kitchen-api
+cd Food-Vendor
 
 # 2. Install dependencies
 npm install
