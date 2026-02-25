@@ -108,7 +108,7 @@
 
 ---
 
-##  Technology Stack
+## 🛠 Technology Stack
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
@@ -186,7 +186,7 @@
 ```bash
 # 1. Clone repository
 git clone https://github.com/omaks45/Food-Vendor.git
-cd Food-Vendor
+cd chuks-kitchen-api
 
 # 2. Install dependencies
 npm install
@@ -855,7 +855,7 @@ const mergeCart = async (token) => {
 
 ---
 
-##  API Documentation
+## API Documentation
 
 ### Base URL
 ```
@@ -865,6 +865,7 @@ Development: http://localhost:5000/api/v1
 ### Interactive Documentation
 ```
 Swagger UI: http://localhost:5000/api/docs
+OpenAPI JSON: http://localhost:5000/api-json
 ```
 
 ### Authentication Headers
@@ -999,6 +1000,16 @@ curl http://localhost:5000/api-json > api-collection.json
 5. GET /users/profile (with token)
 ```
 
+**Guest Cart Flow:**
+```
+1. Generate guestId: guest_1708515600000
+2. POST /cart/items (with guestId)
+3. GET /cart?guestId=guest_1708515600000
+4. Update items
+5. Login
+6. POST /cart/merge (with token & guestId)
+```
+
 **Admin Food Management:**
 ```
 1. POST /auth/admin/login (save admin token)
@@ -1041,7 +1052,7 @@ curl http://localhost:5000/api/v1/food/items?available=true
 
 ---
 
-##  Environment Variables
+## Environment Variables
 
 <details>
 <summary><b>Complete .env Configuration</b></summary>
@@ -1112,6 +1123,7 @@ ALLOWED_ORIGINS=http://localhost:5000,http://localhost:5001
 
 - Follow NestJS best practices
 - Use TypeScript strict mode
+- Write unit tests for new features
 - Update documentation
 - Follow conventional commits
 
@@ -1123,10 +1135,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## Support
+##  Support
 
 - **Documentation**: [Full API Docs](http://localhost:5000/api/docs)
-- **Issues**: [GitHub Issues](https://github.com/yourusername/chuks-kitchen-api/issues)
+- **Issues**: [GitHub Issues](https://github.com/omaks45/Food-Vendor/issues)
 - **Email**: support@chukskitchen.com
 
 ---

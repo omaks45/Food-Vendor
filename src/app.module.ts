@@ -19,6 +19,7 @@ import { UsersModule } from './modules/users/users.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { FoodModule } from './modules/food/food.module';
 import { CartModule } from './modules/cart/cart.module';
+import { OrderModule } from './modules/order/order.module';
 
 @Module({
   imports: [
@@ -58,7 +59,8 @@ import { CartModule } from './modules/cart/cart.module';
     AuthModule,
     UsersModule,
     FoodModule,
-    CartModule
+    CartModule,
+    OrderModule
   ],
   providers: [
     // Global Guards
